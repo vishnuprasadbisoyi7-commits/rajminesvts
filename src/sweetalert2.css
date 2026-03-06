@@ -1,0 +1,3 @@
+/* Import SweetAlert2 styles - Angular 18 should resolve this from node_modules */
+@import 'sweetalert2/dist/sweetalert2.css';
+

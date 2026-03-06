@@ -1,0 +1,37 @@
+{
+  "name": "rajmines-vts-dmg-dynamic",
+  "version": "1.0.0",
+  "description": "Rajmines VTS - DMG Rajasthan Vehicle Tracking System",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --host 0.0.0.0 --port 4200 --disable-host-check",
+    "build": "ng build && node scripts/flatten-dist.js",
+    "build:prod": "ng build --configuration production && node scripts/flatten-dist.js",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^21.1.4",
+    "@angular/common": "^21.1.4",
+    "@angular/compiler": "^21.1.4",
+    "@angular/core": "^21.1.4",
+    "@angular/forms": "^21.1.4",
+    "@angular/platform-browser": "^21.1.4",
+    "@angular/platform-browser-dynamic": "^21.1.4",
+    "@angular/router": "^21.1.4",
+    "@types/leaflet": "^1.9.21",
+    "leaflet": "^1.9.4",
+    "rxjs": "~7.8.0",
+    "sweetalert2": "^11.26.18",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.16.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^21.1.4",
+    "@angular/cli": "^21.1.4",
+    "@angular/compiler-cli": "^21.1.4",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.9.0"
+  }
+}

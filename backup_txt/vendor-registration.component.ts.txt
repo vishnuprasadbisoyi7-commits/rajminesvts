@@ -1,0 +1,1393 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { TranslationService } from '../../services/translation.service';
+import Swal from 'sweetalert2';
+
+interface AdditionalDocument {
+  name: string;
+  file: File | null;
+}
+
+@Component({
+  selector: 'app-vendor-registration',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="header-bar">
+      <div class="logo-section">
+        <img src="https://mines.rajasthan.gov.in/dmgcms/Static/website/images/logo_img.png" 
+             alt="Rajmines Logo" 
+             onerror="this.src='assets/rmines-logo.png'">
+        <div class="logo-text">
+          <h1>RAJMINES VTS</h1>
+          <small>GPS-RFID Based Vehicle Tracking System</small>
+        </div>
+      </div>
+      <button class="back-btn" (click)="goBack()">{{ translate('vendor.backToRoleSelection') }}</button>
+    </div>
+
+    <div class="main-content">
+      <div class="content-card">
+        <div class="content-section">
+          <h2>{{ translate('vendor.vendorRegistration') }}</h2>
+          <p class="subtitle">{{ translate('vendor.registerAsNewGpsVendor') }}</p>
+          
+          <form #vendorForm="ngForm" class="registration-form">
+            <!-- SSO ID Section (Mandatory) -->
+            <div class="form-row" style="padding:16px;background:#f0f7ff;border-radius:8px;border-left:4px solid #4a90e2;margin-bottom:20px;">
+              <label style="font-weight:600;color:#003366;margin-bottom:8px;">{{ translate('vendor.ssoId') }} <span class="required">*</span></label>
+              <div style="display:flex;gap:8px;align-items:flex-start;">
+                <input 
+                  type="text" 
+                  [placeholder]="translate('vendor.enterSsoId')" 
+                  name="ssoId" 
+                  [(ngModel)]="ssoId" 
+                  required
+                  style="flex:1;" />
+                <button 
+                  type="button" 
+                  class="btn-get-details" 
+                  (click)="getSsoDetails()"
+                  [disabled]="!ssoId || isLoadingSso">
+                  {{ isLoadingSso ? translate('vendor.loading') : translate('vendor.getDetails') }}
+                </button>
+              </div>
+              <div class="small" style="margin-top:6px;color:#666;font-size:12px;">
+                {{ translate('vendor.ssoInfo') }}
+              </div>
+            </div>
+
+            <!-- Vendor/Org Name Section -->
+            <div class="form-row">
+              <label>{{ translate('vendor.vendorOrgName') }} <span class="required">*</span></label>
+              <input 
+                type="text" 
+                [placeholder]="translate('vendor.enterVendorOrgName')" 
+                name="vendorName" 
+                [(ngModel)]="vendorFormData.vendorName" 
+                readonly
+                [style.background]="'#f4f8fa'"
+                [style.cursor]="'not-allowed'"
+                [style.opacity]="'0.8'"
+                required />
+            </div>
+            
+            <!-- Email and Mobile Section -->
+            <div class="form-row grid-2">
+              <div>
+                <label>{{ translate('vendor.email') }} <span class="required">*</span></label>
+                <input 
+                  type="email" 
+                  [placeholder]="translate('vendor.enterEmail')" 
+                  name="email" 
+                  [(ngModel)]="vendorFormData.email" 
+                  readonly
+                  [style.background]="'#f4f8fa'"
+                  [style.cursor]="'not-allowed'"
+                  [style.opacity]="'0.8'"
+                  required />
+              </div>
+              <div>
+                <label>{{ translate('vendor.mobileNo') }} <span class="required">*</span></label>
+                <div style="display:flex;gap:8px;align-items:flex-start;">
+                <input 
+                  type="text" 
+                  [placeholder]="translate('vendor.enterMobileNo')" 
+                  name="mobile" 
+                  [(ngModel)]="vendorFormData.mobile" 
+                  readonly
+                  [style.background]="'#f4f8fa'"
+                  [style.cursor]="'not-allowed'"
+                  [style.opacity]="'0.8'"
+                    required
+                    style="flex:1;" />
+                  <button 
+                    type="button" 
+                    class="btn-send-otp" 
+                    (click)="sendOTP()"
+                    [disabled]="!vendorFormData.mobile || !vendorFormData.email || isSendingOTP || otpVerified">
+                    {{ isSendingOTP ? translate('vendor.sending') : translate('vendor.sendOtp') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- OTP Verification Section -->
+            <div class="form-row" *ngIf="otpSent" style="padding:16px;background:#f0f7ff;border-radius:8px;border-left:4px solid #4a90e2;margin-bottom:20px;">
+              <label style="font-weight:600;color:#003366;margin-bottom:8px;">
+                {{ translate('vendor.otpVerification') }} 
+                <span class="required">*</span>
+                <span *ngIf="otpVerified" style="color:#10b981;margin-left:8px;">✓ {{ translate('vendor.otpVerified') }}</span>
+              </label>
+              <div style="display:flex;gap:8px;align-items:flex-start;">
+                <input 
+                  type="text" 
+                  [placeholder]="translate('vendor.enterOtp')" 
+                  name="otp" 
+                  [(ngModel)]="otpInput" 
+                  [readonly]="otpVerified"
+                  [style.background]="otpVerified ? '#f4f8fa' : '#fff'"
+                  maxlength="6"
+                  pattern="[0-9]{6}"
+                  required
+                  style="flex:1;"
+                  (input)="onOtpInput($event)" />
+                <button 
+                  type="button" 
+                  class="btn-verify-otp" 
+                  (click)="verifyOTP()"
+                  [disabled]="!otpInput || otpInput.length !== 6 || otpVerified || isVerifyingOTP">
+                  {{ isVerifyingOTP ? translate('vendor.verifying') : translate('vendor.verifyOtp') }}
+                </button>
+                <button 
+                  type="button" 
+                  class="btn-resend-otp" 
+                  (click)="sendOTP()"
+                  [disabled]="isSendingOTP || otpVerified">
+                  {{ translate('vendor.resendOtp') }}
+                </button>
+              </div>
+              <div class="small" style="margin-top:6px;color:#666;font-size:12px;">
+                {{ translate('vendor.otpSentTo') }} {{ vendorFormData.email }} / {{ vendorFormData.mobile }}
+                <span *ngIf="!otpVerified" style="color:#ef4444;"> - {{ translate('vendor.otpVerificationRequired') }}</span>
+              </div>
+            </div>
+
+            <!-- Aadhar Number Section -->
+            <div class="form-row">
+              <label>{{ translate('vendor.aadharNo') }} <span class="required">*</span> 
+                <span class="info-icon" title="{{ translate('vendor.aadharInfo') }}">ℹ️</span>
+              </label>
+              <input 
+                type="text" 
+                [placeholder]="translate('vendor.enterAadharNo')" 
+                name="aadhar" 
+                [value]="maskedAadhar"
+                readonly
+                [style.background]="'#f4f8fa'"
+                [style.cursor]="'not-allowed'"
+                [style.opacity]="'0.8'"
+                required />
+              <!-- Hidden field for form validation with actual value -->
+              <input type="hidden" name="aadharActual" [(ngModel)]="vendorFormData.aadhar" />
+            </div>
+            
+            <!-- Address Section -->
+            <div class="form-row">
+              <label>{{ translate('vendor.address') }} <span class="required">*</span></label>
+              <textarea 
+                [placeholder]="translate('vendor.enterAddress')" 
+                name="address" 
+                [(ngModel)]="vendorFormData.address" 
+                readonly
+                [style.background]="'#f4f8fa'"
+                [style.cursor]="'not-allowed'"
+                [style.opacity]="'0.8'"
+                required 
+                rows="3"></textarea>
+            </div>
+            
+            <!-- Pincode, GST, PAN Section (Manual Entry) -->
+            <div class="form-row grid-3">
+              <div>
+                <label>{{ translate('vendor.pincode') }} <span class="required">*</span></label>
+                <input 
+                  type="text" 
+                  [placeholder]="translate('vendor.enterPincode')" 
+                  name="pincode" 
+                  [(ngModel)]="vendorFormData.pincode" 
+                  required />
+              </div>
+              <div>
+                <label>{{ translate('vendor.gst') }} <span class="required">*</span></label>
+                <input 
+                  type="text" 
+                  [placeholder]="translate('vendor.enterGstNumber')" 
+                  name="gst" 
+                  [(ngModel)]="vendorFormData.gst" 
+                  required />
+              </div>
+              <div>
+                <label>{{ translate('vendor.pan') }} <span class="required">*</span></label>
+                <input 
+                  type="text" 
+                  [placeholder]="translate('vendor.enterPanNumber')" 
+                  name="pan" 
+                  [(ngModel)]="vendorFormData.pan" 
+                  required />
+              </div>
+            </div>
+            
+            <!-- Contact Person Section (Manual Entry) -->
+            <div class="form-row grid-2">
+              <div>
+                <label>{{ translate('vendor.contactPersonName') }} <span class="required">*</span></label>
+                <input 
+                  type="text" 
+                  [placeholder]="translate('vendor.enterContactPersonName')" 
+                  name="contactPersonName" 
+                  [(ngModel)]="vendorFormData.contactPersonName" 
+                  required />
+              </div>
+              <div>
+                <label>{{ translate('vendor.contactPersonNo') }} <span class="required">*</span></label>
+                <input 
+                  type="text" 
+                  [placeholder]="translate('vendor.enterContactPersonNumber')" 
+                  name="contactPersonNo" 
+                  [(ngModel)]="vendorFormData.contactPersonNo" 
+                  required />
+              </div>
+            </div>
+            
+            <!-- Mandatory Documents Section -->
+            <div class="form-section">
+              <h3 class="section-title">{{ translate('vendor.mandatoryDocuments') }} <span class="required">*</span></h3>
+              <div class="form-row grid-2">
+                <div>
+                  <label>{{ translate('vendor.panDocument') }} <span class="required">*</span></label>
+                  <div class="file-upload-wrapper">
+                    <input 
+                      type="file" 
+                      accept=".pdf,.jpg,.jpeg,.png" 
+                      name="panDocument" 
+                      #panFileInput 
+                      (change)="onPanFileChange($event)"
+                      required />
+                    <div class="file-hint">{{ translate('vendor.uploadPanDocument') }}</div>
+                    <div *ngIf="panDocument" class="file-item mandatory">
+                      <span>📄 {{ panDocument.name }}</span>
+                      <button type="button" class="remove-file" (click)="removePanDocument()">×</button>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label>{{ translate('vendor.gstDocument') }} <span class="required">*</span></label>
+                  <div class="file-upload-wrapper">
+                    <input 
+                      type="file" 
+                      accept=".pdf,.jpg,.jpeg,.png" 
+                      name="gstDocument" 
+                      #gstFileInput 
+                      (change)="onGstFileChange($event)"
+                      required />
+                    <div class="file-hint">{{ translate('vendor.uploadGstDocument') }}</div>
+                    <div *ngIf="gstDocument" class="file-item mandatory">
+                      <span>📄 {{ gstDocument.name }}</span>
+                      <button type="button" class="remove-file" (click)="removeGstDocument()">×</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Documents Section -->
+            <div class="form-section">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h3 class="section-title" style="margin:0;">{{ translate('vendor.additionalDocuments') }} <span class="optional">({{ translate('vendor.optional') }})</span></h3>
+                <button 
+                  type="button" 
+                  class="add-doc-row-btn-top" 
+                  (click)="addAdditionalDocumentRow()">
+                  <span class="add-icon">+</span>
+                </button>
+              </div>
+              <div class="form-row">
+                <div class="multi-upload-container">
+                  <div class="multi-upload-header">
+                    <div class="header-title">Title</div>
+                    <div class="header-file">Select File</div>
+                  </div>
+                  
+                  <!-- Document Rows -->
+                  <div *ngFor="let doc of additionalDocuments; let i = index" class="multi-upload-row">
+                    <div class="multi-upload-title-field">
+                      <input 
+                        type="text" 
+                        placeholder="Title" 
+                        [(ngModel)]="doc.name" 
+                        name="docName_{{i}}"
+                        class="multi-title-input" />
+                    </div>
+                    <div class="multi-upload-file-field">
+                      <input 
+                        type="file" 
+                        accept=".pdf,.jpg,.jpeg,.png" 
+                        [name]="'docFile_' + i"
+                        #fileInput
+                        (change)="onAdditionalFileChange($event, i)"
+                        class="multi-file-input" />
+                      <span class="file-chosen-text" *ngIf="!doc.file">No file chosen</span>
+                      <span class="file-chosen-text file-selected" *ngIf="doc.file">{{ doc.file.name }}</span>
+                    </div>
+                    <button 
+                      type="button" 
+                      class="remove-row-btn" 
+                      (click)="removeAdditionalDocumentRow(i)"
+                      *ngIf="additionalDocuments.length > 0">
+                      ×
+                    </button>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+            
+            <div class="form-actions">
+              <button class="btn-primary" type="button" (click)="registerVendor(vendorForm)" [disabled]="!vendorForm.valid || !panDocument || !gstDocument || !ssoDetailsFetched || !otpVerified">
+                {{ translate('vendor.registerVendor') }}
+              </button>
+              <button class="btn-secondary" type="button" (click)="clearForm(vendorForm)">{{ translate('common.clear') }}</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [`
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :host {
+      display: block;
+      min-height: 100vh;
+      background: #f5f7fa;
+    }
+    .header-bar {
+      background: #003366;
+      color: white;
+      padding: 12px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .logo-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-section img {
+      height: 45px;
+      width: 45px;
+      object-fit: contain;
+    }
+    .logo-text h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: white;
+      margin: 0;
+      line-height: 1.2;
+    }
+    .logo-text small {
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      margin-top: 1px;
+    }
+    .back-btn {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .back-btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    .main-content {
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .content-card {
+      background: white;
+      border-radius: 12px;
+      padding: 35px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 900px;
+    }
+    .content-section h2 {
+      color: #003366;
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .info-icon-header {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background: #4a90e2;
+      color: white;
+      border-radius: 50%;
+      font-size: 13px;
+      line-height: 20px;
+      text-align: center;
+      cursor: help;
+      vertical-align: middle;
+    }
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+    .registration-form {
+      margin-top: 20px;
+    }
+    .form-row {
+      margin-bottom: 20px;
+    }
+    .form-row label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .required {
+      color: #ef4444;
+    }
+    .form-row input,
+    .form-row textarea,
+    .form-row select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .form-row input:focus,
+    .form-row textarea:focus,
+    .form-row select:focus {
+      outline: none;
+      border-color: #008080;
+    }
+    .form-row input[readonly],
+    .form-row textarea[readonly] {
+      cursor: not-allowed !important;
+      opacity: 0.8;
+      background-color: #f4f8fa !important;
+      color: #666;
+    }
+    .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .form-select:focus {
+      outline: none;
+      border-color: #008080;
+    }
+    .form-row textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+    .form-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #003366;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .optional {
+      color: #666;
+      font-weight: 500;
+      font-size: 14px;
+    }
+    .file-upload-wrapper {
+      margin-top: 8px;
+    }
+    .file-hint {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    .multi-upload-container {
+      width: 100%;
+    }
+    .multi-upload-header {
+      display: grid;
+      grid-template-columns: 1fr 2fr auto;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 2px solid #ddd;
+      margin-bottom: 12px;
+      font-weight: 600;
+      color: #333;
+      font-size: 14px;
+    }
+    .header-title {
+      padding-left: 4px;
+    }
+    .header-file {
+      padding-left: 4px;
+    }
+    .multi-upload-row {
+      display: grid;
+      grid-template-columns: 1fr 2fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .multi-upload-row:last-child {
+      border-bottom: none;
+    }
+    .multi-upload-title-field {
+      display: flex;
+      align-items: center;
+    }
+    .multi-title-input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      background: #fff;
+    }
+    .multi-title-input:focus {
+      outline: none;
+      border-color: #008080;
+    }
+    .multi-upload-file-field {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+    }
+    .multi-file-input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #f8f9fa;
+      width: auto;
+      min-width: 120px;
+    }
+    .multi-file-input:hover {
+      background: #e9ecef;
+    }
+    .file-chosen-text {
+      font-size: 13px;
+      color: #999;
+      font-style: italic;
+    }
+    .file-chosen-text.file-selected {
+      color: #008080;
+      font-weight: 500;
+      font-style: normal;
+    }
+    .remove-row-btn {
+      background: transparent;
+      color: #ef4444;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      border-radius: 50%;
+      font-weight: bold;
+    }
+    .remove-row-btn:hover {
+      background: #fee;
+      transform: scale(1.2);
+    }
+    .add-doc-row-btn-top {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      width: 36px;
+      height: 36px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .add-doc-row-btn-top:hover {
+      background: #357abd;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+    }
+    .add-icon {
+      font-size: 24px;
+      font-weight: 300;
+      line-height: 1;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #999;
+      font-size: 14px;
+    }
+    .file-list {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .file-item.mandatory {
+      background: #fff3cd;
+      border-color: #ffc107;
+      border-left: 3px solid #ffc107;
+    }
+    .file-item:hover {
+      background: #f8f9fa;
+    }
+    .remove-file {
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .remove-file:hover {
+      background: #dc3545;
+      transform: scale(1.1);
+    }
+    @media (max-width: 768px) {
+      .multi-upload-header,
+      .multi-upload-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+      .remove-row-btn {
+        align-self: flex-end;
+        margin-top: 8px;
+      }
+    }
+    .form-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #eee;
+    }
+    .btn-primary {
+      background: #008080;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #006666;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,128,128,0.3);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: #f5f7fa;
+      color: #333;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px 30px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+      background: #e9ecef;
+    }
+    .btn-get-details {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-get-details:hover:not(:disabled) {
+      background: #357abd;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .btn-get-details:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-send-otp {
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-send-otp:hover:not(:disabled) {
+      background: #059669;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(16,185,129,0.2);
+    }
+    .btn-send-otp:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-verify-otp {
+      background: #008080;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-verify-otp:hover:not(:disabled) {
+      background: #006666;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0,128,128,0.2);
+    }
+    .btn-verify-otp:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-resend-otp {
+      background: #f59e0b;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-resend-otp:hover:not(:disabled) {
+      background: #d97706;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(245,158,11,0.2);
+    }
+    .btn-resend-otp:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .info-icon {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      background: #4a90e2;
+      color: white;
+      border-radius: 50%;
+      font-size: 12px;
+      line-height: 18px;
+      text-align: center;
+      cursor: help;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    @media (max-width: 768px) {
+      .header-bar {
+        padding: 10px 15px;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .back-btn {
+        align-self: flex-end;
+      }
+      .main-content {
+        padding: 15px;
+      }
+      .content-card {
+        padding: 20px 15px;
+      }
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+  `]
+})
+export class VendorRegistrationComponent implements OnInit, OnDestroy {
+  panDocument: File | null = null;
+  gstDocument: File | null = null;
+  additionalDocuments: AdditionalDocument[] = [{ name: '', file: null }];
+  private languageSubscription?: Subscription;
+
+  // SSO related properties
+  ssoId: string = '';
+  ssoDetailsFetched: boolean = false;
+  isLoadingSso: boolean = false;
+
+  // OTP related properties
+  otpInput: string = '';
+  otpSent: boolean = false;
+  otpVerified: boolean = false;
+  isSendingOTP: boolean = false;
+  isVerifyingOTP: boolean = false;
+  storedOTP: string = '';
+
+  // Masked Aadhar display
+  maskedAadhar: string = '';
+
+  vendorFormData = {
+    vendorType: '',
+    vendorName: '',
+    email: '',
+    mobile: '',
+    aadhar: '',
+    address: '',
+    pincode: '',
+    gst: '',
+    pan: '',
+    contactPersonName: '',
+    contactPersonNo: ''
+  };
+
+  constructor(
+    private router: Router,
+    private translationService: TranslationService
+  ) {}
+
+  translate(key: string): string {
+    return this.translationService.translate(key);
+  }
+
+  ngOnDestroy(): void {
+    this.languageSubscription?.unsubscribe();
+  }
+
+  ngOnInit(): void {
+    // Auto-populate fields by default (from SSO - storage is cleared at app level)
+    this.autoPopulateFields();
+  }
+
+  autoPopulateFields(): void {
+    // Auto-populate from SSO or session storage
+    // In production, this would fetch from SSO API or user session
+    // For now, we'll auto-populate with default/mock data or from session
+    
+    // Check if there's existing vendor data in session
+    const existingVendorData = sessionStorage.getItem('vendorData');
+    if (existingVendorData) {
+      try {
+        const data = JSON.parse(existingVendorData);
+        this.vendorFormData.vendorName = data.vendorName || '';
+        this.vendorFormData.email = data.email || '';
+        this.vendorFormData.mobile = data.mobile || data.contact || '';
+        this.vendorFormData.aadhar = data.aadhar || '';
+        this.vendorFormData.address = data.address || '';
+        this.ssoId = data.ssoId || '';
+        this.ssoDetailsFetched = true;
+      } catch (e) {
+        console.error('Error parsing vendor data:', e);
+      }
+    } else {
+      // Auto-populate with default values (in production, this would come from SSO)
+      // For prototype, we'll use mock data
+      this.vendorFormData.vendorName = 'ANSHUMAN MISHRA';
+      this.vendorFormData.email = 'ANSMISHRA537@GMAIL.COM';
+      this.vendorFormData.mobile = '85xxxx7163';
+      this.vendorFormData.aadhar = '123456789012';
+      this.vendorFormData.address = '123 Main Street, Jaipur, Rajasthan';
+      this.ssoId = 'ANSMISHRA537';
+      this.ssoDetailsFetched = true;
+    }
+    
+    // Mask Aadhar number
+    this.updateMaskedAadhar();
+  }
+
+  maskAadharNumber(aadhar: string): string {
+    if (!aadhar || aadhar.length < 4) {
+      return aadhar;
+    }
+    // Mask all digits except last 4: XXXX XXXX 1234
+    const last4 = aadhar.slice(-4);
+    const masked = 'XXXX XXXX ' + last4;
+    return masked;
+  }
+
+  updateMaskedAadhar(): void {
+    this.maskedAadhar = this.maskAadharNumber(this.vendorFormData.aadhar);
+  }
+
+  clearSessionData(): void {
+    // Clear all session storage related to vendor registration
+    sessionStorage.removeItem('vendorData');
+    sessionStorage.removeItem('vendorRegistered');
+    sessionStorage.removeItem('vendorOTP');
+    sessionStorage.removeItem('vendorOTPExpiry');
+    sessionStorage.removeItem('vendorOTPVerified');
+    sessionStorage.removeItem('vendorEmail');
+  }
+
+  onPanFileChange(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.panDocument = file;
+    }
+  }
+
+  removePanDocument(): void {
+    this.panDocument = null;
+    // Reset the file input
+    const panInput = document.querySelector('input[name="panDocument"]') as HTMLInputElement;
+    if (panInput) {
+      panInput.value = '';
+    }
+  }
+
+  onGstFileChange(event: any): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.gstDocument = file;
+    }
+  }
+
+  removeGstDocument(): void {
+    this.gstDocument = null;
+    // Reset the file input
+    const gstInput = document.querySelector('input[name="gstDocument"]') as HTMLInputElement;
+    if (gstInput) {
+      gstInput.value = '';
+    }
+  }
+
+  addAdditionalDocumentRow(): void {
+    this.additionalDocuments.push({ name: '', file: null });
+  }
+
+  removeAdditionalDocumentRow(index: number): void {
+    this.additionalDocuments.splice(index, 1);
+  }
+
+  onAdditionalFileChange(event: any, index: number): void {
+    const file = event.target.files[0];
+    if (file) {
+      this.additionalDocuments[index].file = file;
+      // Auto-fill name if empty
+      if (!this.additionalDocuments[index].name) {
+        // Remove extension from filename for name
+        const nameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+        this.additionalDocuments[index].name = nameWithoutExt;
+      }
+    }
+  }
+
+  registerVendor(form: any): void {
+    if (!this.ssoDetailsFetched) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'SSO Required',
+        text: 'Please fetch SSO details first. SSO is mandatory for vendor registration.',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    if (!this.otpVerified) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'OTP Verification Required',
+        text: 'Please verify OTP before registration. Click "Send OTP" button to receive OTP.',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    if (!form.valid) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation Error',
+        text: 'Please fill all required fields',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    if (!this.panDocument || !this.gstDocument) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Mandatory Documents Required',
+        text: 'Please upload both PAN and GST documents',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    // Generate unique vendor ID
+    const vendorId = 'VEN-' + Date.now().toString().slice(-6);
+    
+    // Store vendor registration data
+    const vendorData = {
+      ...this.vendorFormData,
+      contact: this.vendorFormData.mobile, // Map mobile to contact for backward compatibility
+      vendorId: vendorId,
+      ssoId: this.ssoId,
+      ssoDetailsFetched: this.ssoDetailsFetched,
+      otpVerified: this.otpVerified,
+      registrationDate: new Date().toISOString(),
+      status: 'active' // Active after registration (in production, this would be set by VTS Admin)
+    };
+    
+    // Generate OTP for verification (for prototype, use simple OTP)
+    const otp = '123456'; // Simple OTP for prototype
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    
+    // Store in sessionStorage (in real app, this would be sent to backend)
+    sessionStorage.setItem('vendorData', JSON.stringify(vendorData));
+    sessionStorage.setItem('vendorRegistered', 'true');
+    sessionStorage.setItem('vendorOTP', otp);
+    sessionStorage.setItem('vendorOTPExpiry', otpExpiry.toISOString());
+    sessionStorage.setItem('vendorOTPVerified', 'false');
+    sessionStorage.setItem('vendorEmail', this.vendorFormData.email);
+    
+    // Add to vendors list
+    this.addVendorToList(vendorData);
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Registration Successful!',
+      html: `
+        <p>Your vendor registration has been submitted successfully.</p>
+        <p style="margin-top: 10px;"><strong>Vendor ID: ${vendorId}</strong></p>
+        <p style="margin-top: 10px; font-size: 13px; color: #666;">Your email and mobile have been verified.</p>
+      `,
+      confirmButtonColor: '#008080',
+      confirmButtonText: 'Continue'
+    }).then(() => {
+      this.router.navigate(['/role-selection']);
+    });
+  }
+
+  sendOTP(): void {
+    if (!this.vendorFormData.mobile || !this.vendorFormData.email) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Mobile & Email Required',
+        text: 'Please enter mobile number and email to send OTP',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    // Validate mobile number (should be 10 digits)
+    if (this.vendorFormData.mobile.length !== 10 || !/^\d+$/.test(this.vendorFormData.mobile)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Invalid Mobile Number',
+        text: 'Please enter a valid 10-digit mobile number',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    // Validate email
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(this.vendorFormData.email)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Invalid Email',
+        text: 'Please enter a valid email address',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    this.isSendingOTP = true;
+
+    // Simulate API call to send OTP
+    setTimeout(() => {
+      // Generate OTP (for prototype, use simple OTP)
+      const otp = '123456'; // In production, this would be generated by backend
+      this.storedOTP = otp;
+      this.otpSent = true;
+      this.otpVerified = false;
+      this.otpInput = '';
+      this.isSendingOTP = false;
+
+      Swal.fire({
+        icon: 'success',
+        title: this.translate('vendor.otpSent'),
+        html: `
+          <p>${this.translate('vendor.otpSentTo')} <strong>${this.vendorFormData.email}</strong> / <strong>${this.vendorFormData.mobile}</strong></p>
+          <p style="margin-top: 10px; font-size: 13px; color: #666;">(For prototype: OTP is <strong>${otp}</strong>)</p>
+        `,
+        confirmButtonColor: '#008080',
+        timer: 3000
+      });
+    }, 1000);
+  }
+
+  onOtpInput(event: any): void {
+    // Only allow numbers
+    this.otpInput = event.target.value.replace(/[^0-9]/g, '');
+  }
+
+  verifyOTP(): void {
+    if (!this.otpInput || this.otpInput.length !== 6) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Invalid OTP',
+        text: 'Please enter a valid 6-digit OTP',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    this.isVerifyingOTP = true;
+
+    // Simulate API call to verify OTP
+    setTimeout(() => {
+      // Verify OTP (for prototype, accept 123456 or stored OTP)
+      if (this.otpInput === this.storedOTP || this.otpInput === '123456') {
+        this.otpVerified = true;
+        this.isVerifyingOTP = false;
+
+        Swal.fire({
+          icon: 'success',
+          title: this.translate('vendor.otpVerified'),
+          text: 'OTP verified successfully. You can now proceed with registration.',
+          confirmButtonColor: '#008080',
+          timer: 2000
+        });
+      } else {
+        this.isVerifyingOTP = false;
+        Swal.fire({
+          icon: 'error',
+          title: 'Invalid OTP',
+          text: 'The OTP you entered is incorrect. Please try again.',
+          confirmButtonColor: '#008080'
+        });
+        this.otpInput = '';
+      }
+    }, 500);
+  }
+
+  addVendorToList(vendorData: any): void {
+    // Load existing vendors list
+    const storedVendors = sessionStorage.getItem('vendors_list');
+    let vendorsList: any[] = [];
+    
+    if (storedVendors) {
+      try {
+        vendorsList = JSON.parse(storedVendors);
+      } catch (e) {
+        console.error('Error parsing vendors list:', e);
+        vendorsList = [];
+      }
+    }
+    
+    // Check if vendor already exists (by vendorId or email)
+    const existingIndex = vendorsList.findIndex(v => 
+      v.vendorId === vendorData.vendorId || v.email === vendorData.email
+    );
+    
+    if (existingIndex >= 0) {
+      // Update existing vendor
+      vendorsList[existingIndex] = vendorData;
+    } else {
+      // Add new vendor
+      vendorsList.push(vendorData);
+    }
+    
+    // Save updated list
+    sessionStorage.setItem('vendors_list', JSON.stringify(vendorsList));
+  }
+
+  clearForm(form: any): void {
+    form.reset();
+    this.ssoId = '';
+    this.ssoDetailsFetched = false;
+    this.panDocument = null;
+    this.gstDocument = null;
+    this.additionalDocuments = [{ name: '', file: null }];
+    // Reset OTP fields
+    this.otpInput = '';
+    this.otpSent = false;
+    this.otpVerified = false;
+    this.storedOTP = '';
+    // Reset file inputs
+    const panInput = document.querySelector('input[name="panDocument"]') as HTMLInputElement;
+    const gstInput = document.querySelector('input[name="gstDocument"]') as HTMLInputElement;
+    if (panInput) panInput.value = '';
+    if (gstInput) gstInput.value = '';
+    // Reset all additional document file inputs
+    const docInputs = document.querySelectorAll('input[name^="docFile_"]') as NodeListOf<HTMLInputElement>;
+    docInputs.forEach(input => input.value = '');
+  }
+
+  goBack(): void {
+    this.router.navigate(['/role-selection']);
+  }
+
+  getSsoDetails(): void {
+    if (!this.ssoId || this.ssoId.trim() === '') {
+      Swal.fire({
+        icon: 'warning',
+        title: 'SSO ID Required',
+        text: 'Please enter a valid SSO ID',
+        confirmButtonColor: '#008080'
+      });
+      return;
+    }
+
+    this.isLoadingSso = true;
+
+    // Simulate API call to fetch SSO details
+    // In production, this would be an actual HTTP call
+    setTimeout(() => {
+      // Check if SSO ID is authorized (for prototype, we'll simulate)
+      const authorizedSsoIds = ['sdd', 'vendor001', 'vendor002', 'testvendor'];
+      
+      if (!authorizedSsoIds.includes(this.ssoId.toLowerCase())) {
+        this.isLoadingSso = false;
+        Swal.fire({
+          icon: 'error',
+          title: 'Unauthorized Vendor',
+          text: 'This SSO ID is not registered as an authorized vendor. Only authorized registered vendors can register.',
+          confirmButtonColor: '#008080'
+        });
+        return;
+      }
+
+      // Simulate fetching vendor details from SSO
+      // In production, this would come from the SSO API
+      const mockSsoData: any = {
+        'sdd': {
+          vendorName: 'SARIKA MEENA',
+          email: 'sarikameena@dcmshriram.com',
+          mobile: '9876543210',
+          aadhar: '123456789012',
+          address: '123 Main Street, Jaipur, Rajasthan'
+        },
+        'vendor001': {
+          vendorName: 'TRACKPRO PVT LTD',
+          email: 'info@trackpro.in',
+          mobile: '9876543210',
+          aadhar: '234567890123',
+          address: '456 Business Park, Udaipur, Rajasthan'
+        },
+        'vendor002': {
+          vendorName: 'SMARTTRACK SOLUTIONS',
+          email: 'admin@smarttrack.com',
+          mobile: '9090909090',
+          aadhar: '345678901234',
+          address: '789 Tech Hub, Jodhpur, Rajasthan'
+        },
+        'testvendor': {
+          vendorName: 'TEST VENDOR COMPANY',
+          email: 'test@vendor.com',
+          mobile: '9999999999',
+          aadhar: '456789012345',
+          address: '321 Test Avenue, Ajmer, Rajasthan'
+        }
+      };
+
+      const vendorData = mockSsoData[this.ssoId.toLowerCase()] || mockSsoData['sdd'];
+      
+      // Auto-populate only specific fields from SSO: vendorName, email, mobile, aadhar, address
+      this.vendorFormData.vendorName = vendorData.vendorName;
+      this.vendorFormData.email = vendorData.email;
+      this.vendorFormData.mobile = vendorData.mobile || vendorData.contact;
+      this.vendorFormData.aadhar = vendorData.aadhar;
+      this.vendorFormData.address = vendorData.address || '';
+      
+      // Update masked Aadhar
+      this.updateMaskedAadhar();
+      
+      // Other fields (pincode, GST, PAN, contact person) remain manual entry
+
+      this.ssoDetailsFetched = true;
+      this.isLoadingSso = false;
+      
+      // Reset OTP verification when SSO details are fetched again
+      this.otpSent = false;
+      this.otpVerified = false;
+      this.otpInput = '';
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Details Fetched',
+        text: 'Vendor details have been fetched from SSO successfully',
+        confirmButtonColor: '#008080',
+        timer: 2000
+      });
+    }, 1000);
+  }
+
+}
+

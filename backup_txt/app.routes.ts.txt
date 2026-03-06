@@ -1,0 +1,29 @@
+import { Routes } from '@angular/router';
+import { RoleSelectionComponent } from './pages/role-selection/role-selection.component';
+import { VendorRegistrationComponent } from './pages/vendor-registration/vendor-registration.component';
+import { VendorOTPVerificationComponent } from './pages/vendor-otp-verification/vendor-otp-verification.component';
+import { DashboardComponent } from './pages/dashboard/dashboard.component';
+import { TrackingComponent } from './pages/tracking/tracking.component';
+import { DeviceComponent } from './pages/device/device.component';
+import { GeofenceComponent } from './pages/geofence/geofence.component';
+import { VendorComponent } from './pages/vendor/vendor.component';
+import { NotificationsComponent } from './pages/notifications/notifications.component';
+import { ConfigurationComponent } from './pages/configuration/configuration.component';
+import { TripAssignmentComponent } from './pages/trip-assignment/trip-assignment.component';
+
+export const routes: Routes = [
+  { path: '', redirectTo: '/role-selection', pathMatch: 'full' },
+  { path: 'role-selection', component: RoleSelectionComponent },
+  { path: 'vendor-registration', component: VendorRegistrationComponent },
+  { path: 'vendor-otp-verification', component: VendorOTPVerificationComponent },
+  { path: 'dashboard', component: DashboardComponent },
+  { path: 'tracking', component: TrackingComponent },
+  { path: 'trip-assignment', component: TripAssignmentComponent },
+  { path: 'device', component: DeviceComponent },
+  { path: 'device/fitment', component: DeviceComponent, data: { section: 'fitment' } },
+  { path: 'geofence', component: GeofenceComponent },
+  { path: 'vendor', component: VendorComponent },
+  { path: 'notifications', component: NotificationsComponent },
+  { path: 'configuration', component: ConfigurationComponent }
+];
+

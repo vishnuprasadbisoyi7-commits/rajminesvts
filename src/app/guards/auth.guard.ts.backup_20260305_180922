@@ -1,0 +1,61 @@
+import { inject } from '@angular/core';
+import { CanActivateFn, Router } from '@angular/router';
+import { AuthService } from '../services/auth.service';
+
+export const authGuard: CanActivateFn = (_route, state) => {
+  const authService = inject(AuthService);
+  const router = inject(Router);
+  const role = sessionStorage.getItem('role') || '';
+  const targetUrl = state.url.split('?')[0];
+  const isAuthenticated = authService.isLoggedIn();
+  const vendorAllowedRoutes = ['/dashboard', '/device', '/notifications'];
+  const adminOnlyRoutes = [
+    '/tracking',
+    '/trip-assignment',
+    '/geofence',
+    '/vendor',
+    '/device/fitment',
+    '/create-group',
+    '/create-user',
+    '/user-menu-mapping'
+  ];
+
+  if (role === 'system-admin') {
+    if (!isAuthenticated) {
+      router.navigate(['/role-selection']);
+      return false;
+    }
+    return true;
+  }
+
+  if (role === 'gps-vendor' && isAuthenticated) {
+    const isAllowed = vendorAllowedRoutes.some((allowedRoute) => {
+      return targetUrl === allowedRoute || targetUrl.startsWith(`${allowedRoute}/`);
+    });
+
+    if (isAllowed) {
+      return true;
+    }
+
+    router.navigate(['/dashboard']);
+    return false;
+  }
+
+  // Block non-admin roles from admin-only VTS routes.
+  const isAdminRoute = adminOnlyRoutes.some((adminRoute) => {
+    return targetUrl === adminRoute || targetUrl.startsWith(`${adminRoute}/`);
+  });
+  if (isAdminRoute) {
+    router.navigate(['/dashboard']);
+    return false;
+  }
+
+  // OCC and other non-vendor roles can continue to their limited routes.
+  if (role && role !== 'gps-vendor') {
+    return true;
+  }
+
+  router.navigate(['/role-selection']);
+  return false;
+};
+ 

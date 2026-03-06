@@ -1,0 +1,334 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { filter } from 'rxjs/operators';
+import { TranslationService, Language } from '../../services/translation.service';
+import { Subscription } from 'rxjs';
+import { AuthService } from '../../services/auth.service';
+
+@Component({
+  selector: 'app-header',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <header class="header">
+      <div class="left">
+        <button class="hamburger-menu" (click)="toggleSidebar()" aria-label="Menu">☰</button>
+        <div class="breadcrumb">
+          <span class="breadcrumb-icon">⌂</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-text">{{ breadcrumbText }}</span>
+        </div>
+      </div>
+      <div class="right">
+        <button class="btn-back-role" (click)="goToRoleSelection()">{{ translate('common.backToRole') }}</button>
+        <div class="user-info">
+          <div class="user-icon">👤</div>
+          <div class="welcome-text">
+            <div>{{ translate('common.welcome') }}</div>
+            <div>{{ userName }}</div>
+            <div class="user-category" *ngIf="userCategory">{{ userCategory }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="language-switcher">
+          <select [(ngModel)]="currentLanguage" (change)="onLanguageChange()" class="language-select">
+            <option value="en">English</option>
+            <option value="hi">हिंदी</option>
+          </select>
+        </div>
+        <button class="logout-btn" (click)="logout()">{{ translate('common.logout') }}</button>
+      </div>
+    </header>
+  `,
+  styles: [`
+    .header {
+      height: 64px;
+      background: var(--header-bg);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+    .header .left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .hamburger-menu {
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s ease;
+    }
+    .hamburger-menu:hover {
+      opacity: 0.8;
+    }
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    .breadcrumb-icon {
+      font-size: 18px;
+      color: #fff;
+    }
+    .breadcrumb-separator {
+      color: #fff;
+      opacity: 0.6;
+    }
+    .breadcrumb-text {
+      font-weight: 700;
+      color: #fff;
+    }
+    .header .right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .header-separator {
+      width: 1px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .user-icon {
+      width: 32px;
+      height: 32px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .language-select {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      transition: all 0.2s;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 32px;
+    }
+    .language-select:hover {
+      background-color: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .language-select option {
+      background: #003366;
+      color: white;
+    }
+    .logout-btn {
+      background: #d32f2f;
+      border: none;
+      color: white;
+      padding: 8px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s;
+    }
+    .logout-btn:hover {
+      background: #b71c1c;
+    }
+    .logout-btn::after {
+      content: '→';
+      font-size: 15px;
+    }
+    .welcome-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.2;
+      font-size: 13px;
+    }
+    .welcome-text div:first-child {
+      color: #fff;
+      opacity: 0.9;
+    }
+    .welcome-text div:last-child {
+      color: #fff;
+      font-weight: 700;
+    }
+    .user-category {
+      font-size: 11px;
+      opacity: 0.8;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+    .btn-back-role {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      transition: all 0.2s;
+      margin-right: 12px;
+    }
+    .btn-back-role:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .language-switcher {
+      margin-right: 12px;
+    }
+    .language-select {
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+    .language-select:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .language-select option {
+      background: #003366;
+      color: white;
+    }
+  `]
+})
+export class HeaderComponent implements OnInit, OnDestroy {
+  breadcrumbText = 'Dashboard';
+  userName = 'User';
+  userCategory = '';
+  currentLanguage: Language = 'en';
+  private languageSubscription?: Subscription;
+
+  constructor(
+    private router: Router,
+    private translationService: TranslationService,
+    private authService: AuthService
+  ) {
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        this.updateBreadcrumb(event.url);
+        this.updateUserInfo();
+      });
+    
+    // Initialize user info
+    this.updateUserInfo();
+  }
+
+  ngOnInit(): void {
+    this.currentLanguage = this.translationService.getCurrentLanguage();
+    // Subscribe to language changes to update breadcrumb
+    this.languageSubscription = this.translationService.language$.subscribe(() => {
+      this.updateBreadcrumb(this.router.url);
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.languageSubscription?.unsubscribe();
+  }
+
+  translate(key: string): string {
+    return this.translationService.translate(key);
+  }
+
+  onLanguageChange(): void {
+    this.translationService.setLanguage(this.currentLanguage);
+  }
+  logout(): void {
+    sessionStorage.clear();
+    this.authService.logout();
+  }
+
+  private updateUserInfo(): void {
+    try {
+      const userStr = sessionStorage.getItem('user');
+      const role = sessionStorage.getItem('role') || 'system-admin';
+      
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        
+        // Get role-specific user name
+        const roleUserMap: { [key: string]: { name: string; category: string } } = {
+          'system-admin': { name: user.systemAdminName || 'VTS Admin', category: 'VTS Administrator' },
+          'gps-vendor': { name: user.gpsVendorName || 'Vendor Manager', category: 'GPS Vendor' },
+          'occ': { name: user.name || 'OCC User', category: 'OCC' }
+        };
+        
+        const roleInfo = roleUserMap[role] || { name: user.name || 'User', category: '' };
+        this.userName = roleInfo.name;
+        this.userCategory = roleInfo.category;
+      } else {
+        // Default based on role
+        const roleCategoryMap: { [key: string]: string } = {
+          'system-admin': 'VTS Administrator',
+          'gps-vendor': 'GPS Vendor',
+          'occ': 'OCC'
+        };
+        this.userCategory = roleCategoryMap[role] || '';
+      }
+    } catch (e) {
+      console.error('Error updating user info:', e);
+    }
+  }
+
+  private updateBreadcrumb(url: string): void {
+    const routeMap: { [key: string]: string } = {
+      '/role-selection': this.translate('roleSelection.title'),
+      '/vendor-registration': this.translate('vendor.title'),
+      '/vendor-otp-verification': 'OTP Verification',
+      '/dashboard': this.translate('dashboard.title'),
+      '/tracking': this.translate('tracking.title'),
+      '/device': this.translate('device.title'),
+      '/device/fitment': this.translate('device.fitAndActivate'),
+      '/geofence': this.translate('geofence.title'),
+      '/vendor': this.translate('vendor.title'),
+      '/notifications': this.translate('notifications.title'),
+      '/configuration': this.translate('configuration.title')
+    };
+    this.breadcrumbText = routeMap[url] || this.translate('dashboard.title');
+  }
+
+  toggleSidebar(): void {
+    // This will be handled by the sidebar component
+    const event = new CustomEvent('toggleSidebar');
+    window.dispatchEvent(event);
+  }
+
+  goToRoleSelection(): void {
+    this.router.navigate(['/role-selection']);
+  }
+}
+

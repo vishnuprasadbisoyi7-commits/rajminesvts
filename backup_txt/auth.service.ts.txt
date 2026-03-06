@@ -1,0 +1,45 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable, tap } from 'rxjs';
+// import { environment } from '../../environments/environment';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  // private apiUrl = `${environment.apiUrl}/auth`;
+  private apiUrl = 'http://localhost:8089/api/auth';
+
+  constructor(private http: HttpClient) {}
+
+  login(credentials: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/login`, credentials).pipe(
+      tap((res: any) => {
+        if (res.status === 'SUCCESS' && res.data.token) {
+          localStorage.setItem('auth_token', res.data.token);
+          localStorage.setItem('user_role', res.data.USER_ROLE);
+          localStorage.setItem('user_name', res.data.USERNAME);
+        }
+      })
+    );
+  }
+
+  logout(): void {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('user_name');
+    window.location.href = '/role-selection';
+  }
+
+  getToken(): string | null {
+    return localStorage.getItem('auth_token');
+  }
+
+  getRole(): string | null {
+    return localStorage.getItem('user_role');
+  }
+
+  isLoggedIn(): boolean {
+    return !!this.getToken();
+  }
+}

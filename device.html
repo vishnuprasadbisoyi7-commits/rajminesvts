@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Device Tagging — Rajmines VTS</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body onload="initializePage('device')">
+  <header class="header">
+    <div class="left">
+      <button class="hamburger-menu" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <div class="breadcrumb">
+        <span class="breadcrumb-icon">⌂</span>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-text" id="headerBreadcrumb">Device Tagging</span>
+      </div>
+    </div>
+    <div class="right">
+      <button class="btn" onclick="alert('Map view placeholder')">View Map</button>
+      <div class="header-separator"></div>
+      <div class="user-info">
+        <div class="user-icon">👤</div>
+        <div class="welcome-text">
+          <div>Welcome</div>
+          <div>User</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar" aria-label="Sidebar">
+      <!-- sidebar rendered by JS -->
+    </aside>
+
+    <main class="main">
+      <div class="card">
+        <div class="page-title" id="pageTitle">Device Tagging</div>
+        <div class="small">DMG Rajasthan aligned prototype — offline</div>
+      </div>
+
+      <!-- Registered Device Section -->
+      <div id="registered-section" class="device-section">
+<div class="card">
+        <div style="font-weight:700;font-size:18px;color:var(--title-color);margin-bottom:16px;">1. Registered Device</div>
+  <div class="tabs">
+    <div class="tab" data-tab="add">Add</div>
+    <div class="tab" data-tab="view">View</div>
+  </div>
+
+        <div id="device-add" class="tab-content active">
+    <form id="deviceForm">
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>Device Name <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter device name" name="deviceName" required />
+        </div>
+        <div>
+          <label>IMEI / Serial <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter IMEI or serial number" name="imei" required />
+        </div>
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>Model <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter device model" name="model" required />
+        </div>
+        <div>
+          <label>Firmware</label>
+          <input type="text" placeholder="Enter firmware version" name="firmware" />
+        </div>
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>SIM ICCID / MSISDN <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter SIM ICCID or MSISDN" name="simInfo" required />
+        </div>
+        <div>
+          <label>Vendor <span style="color:#ef4444">*</span></label>
+          <select name="vendor" required>
+            <option value="">Select vendor (only active vendors shown)</option>
+            <option>TrackPro Pvt Ltd (VEN-001)</option>
+            <option>SmartTrack Solutions (VEN-002)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Health Status</label>
+        <select name="healthStatus">
+          <option value="healthy">Healthy</option>
+          <option value="warning">Warning</option>
+          <option value="critical">Critical</option>
+          <option value="unknown">Unknown</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn" type="button" onclick="alert('GPS Device registered successfully. (prototype)')">Register Device</button>
+        <button class="btn ghost" type="button" onclick="document.getElementById('deviceForm').reset()">Clear</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="device-view" class="tab-content">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Device Name</th>
+          <th>IMEI</th>
+          <th>Model</th>
+          <th>Vendor</th>
+          <th>Health Status</th>
+          <th>Device Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>GPS-X100</td>
+          <td>356123456789012</td>
+          <td>X100 Pro</td>
+          <td>TrackPro Pvt Ltd</td>
+          <td><span class="status-active">Healthy</span></td>
+          <td><span class="status-active">Active</span></td>
+          <td>
+            <button class="btn ghost" style="padding:4px 8px;font-size:12px;margin-right:4px;" onclick="showDeactivateModal('GPS-X100')">Deactivate</button>
+            <button class="btn ghost" style="padding:4px 8px;font-size:12px;" onclick="showMaintenanceModal('GPS-X100')">Maintenance</button>
+          </td>
+        </tr>
+        <tr>
+          <td>GPS-Mini</td>
+          <td>490567812345678</td>
+          <td>Mini V2</td>
+          <td>SmartTrack Solutions</td>
+          <td><span class="status-inactive">Warning</span></td>
+          <td><span class="status-inactive">Inactive</span></td>
+          <td>
+            <button class="btn ghost" style="padding:4px 8px;font-size:12px;margin-right:4px;" onclick="showDeactivateModal('GPS-Mini')">Deactivate</button>
+            <button class="btn ghost" style="padding:4px 8px;font-size:12px;" onclick="showMaintenanceModal('GPS-Mini')">Maintenance</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+        </div>
+      </div>
+      </div>
+
+      <!-- Fit & Activate Section -->
+      <div id="fitment-section" class="device-section" style="display:none;">
+      <div class="card">
+        <div style="font-weight:700;font-size:18px;color:var(--title-color);margin-bottom:16px;">2. Fit & Activate</div>
+        <div class="tabs">
+          <div class="tab" data-tab="fitment-add">Add Fitment</div>
+          <div class="tab" data-tab="fitment-view">View Fitment</div>
+        </div>
+
+        <div id="fitment-add" class="tab-content">
+          <form id="fitmentForm">
+      <div class="form-row">
+        <label>Select Device <span style="color:#ef4444">*</span></label>
+        <select name="device" required>
+          <option value="">Select device</option>
+          <option>GPS-X100 (356123456789012)</option>
+          <option>GPS-Mini (490567812345678)</option>
+        </select>
+        <div class="small" style="margin-top:4px;">Only devices from active vendors can be fitted</div>
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>Vehicle Registration Number <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter vehicle registration number" name="vehicleRegNo" required />
+        </div>
+        <div>
+          <label>Date & Time of Installation <span style="color:#ef4444">*</span></label>
+          <input type="datetime-local" name="installDateTime" required />
+        </div>
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>Installer Name <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter installer name" name="installerName" required />
+        </div>
+        <div>
+          <label>Installer Contact No</label>
+          <input type="text" placeholder="Enter installer contact number" name="installerContact" />
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Upload Photos <span style="color:#ef4444">*</span></label>
+        <input type="file" multiple accept=".jpg,.jpeg,.png" name="photos" required />
+        <div class="small" style="margin-top:4px;">Upload installation photos - JPG, PNG formats</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn" type="button" onclick="alert('Fitment submitted. Device will be activated after first valid GPS ping within 5 minutes. (prototype)')">Submit Fitment & Activate</button>
+            <button class="btn ghost" type="button" onclick="document.getElementById('fitmentForm').reset()">Clear</button>
+          </div>
+        </form>
+        </div>
+
+        <div id="fitment-view" class="tab-content">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Device</th>
+            <th>Vehicle Registration</th>
+            <th>Installer</th>
+            <th>Installation Date</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>GPS-X100</td>
+            <td>OD02AB1234</td>
+            <td>R. Nayak</td>
+            <td>2025-01-15 14:30</td>
+            <td><span class="status-active">Active</span></td>
+            <td><button class="btn ghost" style="padding:4px 8px;font-size:12px;" onclick="alert('View fitment details (prototype)')">View</button></td>
+          </tr>
+        </tbody>
+      </table>
+        </div>
+      </div>
+      </div>
+
+<!-- Deactivate/Maintenance Modal -->
+<div id="deviceModal" class="modal" style="display:none;">
+  <div class="modal-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h3 style="margin:0;" id="modalTitle">Deactivate Device</h3>
+      <button class="btn ghost" onclick="closeDeviceModal()" style="padding:4px 8px;">✕</button>
+    </div>
+    <form id="deviceActionForm">
+      <div class="form-row">
+        <label>Device Name</label>
+        <input type="text" id="modalDeviceName" readonly style="background:#f4f8fa;" />
+      </div>
+      <div class="form-row">
+        <label>Reason <span style="color:#ef4444">*</span></label>
+        <select id="modalReason" required>
+          <option value="">Select reason</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="malfunction">Malfunction</option>
+          <option value="theft">Theft</option>
+          <option value="replacement">Replacement</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Additional Notes</label>
+        <textarea id="modalNotes" placeholder="Enter additional notes (optional)"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn" type="button" onclick="submitDeviceAction()">Confirm</button>
+        <button class="btn ghost" type="button" onclick="closeDeviceModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+  <script>
+    // Handle hash-based navigation for device sections
+    function showDeviceSection() {
+      const hash = window.location.hash.replace('#', '');
+      const registeredSection = document.getElementById('registered-section');
+      const fitmentSection = document.getElementById('fitment-section');
+      const pageTitle = document.getElementById('pageTitle');
+      const breadcrumbText = document.getElementById('headerBreadcrumb');
+      
+      if(hash === 'fitment') {
+        registeredSection.style.display = 'none';
+        fitmentSection.style.display = 'block';
+        if(pageTitle) pageTitle.textContent = 'Fit & Activate';
+        if(breadcrumbText) breadcrumbText.textContent = 'Fit & Activate';
+      } else {
+        // Default to registered device (when hash is empty or 'registered')
+        registeredSection.style.display = 'block';
+        fitmentSection.style.display = 'none';
+        if(pageTitle) pageTitle.textContent = 'Registered Device';
+        if(breadcrumbText) breadcrumbText.textContent = 'Registered Device';
+      }
+    }
+    
+    // Show section on load
+    showDeviceSection();
+    
+    // Listen for hash changes
+    window.addEventListener('hashchange', showDeviceSection);
+    
+    let currentDeviceName = '';
+    let currentAction = '';
+
+    function showDeactivateModal(deviceName) {
+      currentDeviceName = deviceName;
+      currentAction = 'deactivate';
+      document.getElementById('modalTitle').textContent = 'Deactivate Device';
+      document.getElementById('modalDeviceName').value = deviceName;
+      document.getElementById('deviceModal').style.display = 'flex';
+    }
+
+    function showMaintenanceModal(deviceName) {
+      currentDeviceName = deviceName;
+      currentAction = 'maintenance';
+      document.getElementById('modalTitle').textContent = 'Device Maintenance';
+      document.getElementById('modalDeviceName').value = deviceName;
+      document.getElementById('deviceModal').style.display = 'flex';
+    }
+
+    function closeDeviceModal() {
+      document.getElementById('deviceModal').style.display = 'none';
+      document.getElementById('deviceActionForm').reset();
+      currentDeviceName = '';
+      currentAction = '';
+    }
+
+    function submitDeviceAction() {
+      const reason = document.getElementById('modalReason').value;
+      if (!reason) {
+        alert('Please select a reason');
+        return;
+      }
+      const notes = document.getElementById('modalNotes').value;
+      alert(`${currentAction === 'deactivate' ? 'Device deactivated' : 'Device marked for maintenance'}. Reason: ${reason}. ${notes ? 'Notes: ' + notes : ''} Tracking stopped, alerts suppressed. (prototype)`);
+      closeDeviceModal();
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+      const modal = document.getElementById('deviceModal');
+      if (event.target === modal) {
+        closeDeviceModal();
+      }
+    }
+
+  </script>
+</body>
+</html>

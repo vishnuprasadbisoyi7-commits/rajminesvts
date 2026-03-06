@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard — Rajmines VTS</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body onload="initializePage('index')">
+  <header class="header">
+    <div class="left">
+      <button class="hamburger-menu" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <div class="breadcrumb">
+        <span class="breadcrumb-icon">⌂</span>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-text">Dashboard</span>
+      </div>
+    </div>
+    <div class="right">
+      <button class="btn" onclick="alert('Map view placeholder')">View Map</button>
+      <div class="header-separator"></div>
+      <div class="user-info">
+        <div class="user-icon">👤</div>
+        <div class="welcome-text">
+          <div>Welcome</div>
+          <div>User</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar" aria-label="Sidebar">
+      <!-- sidebar rendered by JS -->
+    </aside>
+
+    <main class="main">
+      <div class="card">
+        <div class="page-title">Dashboard</div>
+        <div class="small">DMG Rajasthan aligned prototype — offline</div>
+      </div>
+
+      
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <div><strong>Overview</strong><div class="small">Quick links & recent activity</div></div>
+    <div class="small">Environment: Offline Prototype</div>
+  </div>
+  <div style="margin-top:12px;display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+    <div class="card"><div style="font-weight:800">Vendors</div><div class="small">12 registered</div></div>
+    <div class="card"><div style="font-weight:800">Devices</div><div class="small">34 tagged</div></div>
+    <div class="card"><div style="font-weight:800">Active Tracks</div><div class="small">6 active</div></div>
+  </div>
+</div>
+
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,1231 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { TranslationService } from '../../services/translation.service';
+import Swal from 'sweetalert2';
+import { DeviceService } from '../../services/device.service';
+
+interface Device {
+  deviceName: string;
+  imeiSerial: string;
+  model?: string;
+  firmwareVersion?: string;
+  deviceStatus?: string;
+  vendorName?: string;
+  healthStatus?: string;
+}
+
+interface VendorOption {
+  id: string;
+  name: string;
+  label: string;
+}
+
+@Component({
+  selector: 'app-device',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
+    <div class="card">
+      <div class="page-title">{{ translate('device.title') }}</div>
+      <div class="small">{{ translate('device.subtitle') }}</div>
+    </div>
+
+    <!-- Registered Device Section -->
+    <div *ngIf="currentSection === 'registered'" class="device-section">
+      <div class="card">
+        <div style="font-weight:700;font-size:18px;color:var(--title-color);margin-bottom:16px;">1. Registered Device</div>
+        <div class="tabs">
+          <div class="tab" [class.active]="activeTab === 'add'" (click)="setActiveTab('add')">Add</div>
+          <div class="tab" [class.active]="activeTab === 'view'" (click)="setActiveTab('view')">View</div>
+        </div>
+
+        <div id="device-add" class="tab-content" [class.active]="activeTab === 'add'">
+          <form #deviceForm="ngForm">
+            <div class="form-row">
+              <label>Vendor <span style="color:#ef4444">*</span></label>
+              <select name="vendor" [(ngModel)]="deviceFormData.vendor" required>
+                <option value="">Select vendor (only active vendors shown)</option>
+                <option *ngFor="let vendor of vendorsList" [value]="vendor.id">{{ vendor.label }}</option>
+              </select>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label>Device Name <span style="color:#ef4444">*</span></label>
+                <input type="text" placeholder="Enter device name" name="deviceName" [(ngModel)]="deviceFormData.deviceName" required />
+              </div>
+              <div>
+                <label>IMEI / Serial <span style="color:#ef4444">*</span></label>
+                <input type="text" placeholder="Enter IMEI or serial number" name="imei" [(ngModel)]="deviceFormData.imei" required />
+              </div>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label>Model <span style="color:#ef4444">*</span></label>
+                <input type="text" placeholder="Enter device model" name="model" [(ngModel)]="deviceFormData.model" required />
+              </div>
+              <div>
+                <label>Firmware</label>
+                <input type="text" placeholder="Enter firmware version" name="firmware" [(ngModel)]="deviceFormData.firmware" />
+              </div>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label>SIM ICCID / MSISDN 1 <span style="color:#ef4444">*</span></label>
+                <input type="text" placeholder="Enter SIM ICCID or MSISDN" name="sim1Info" [(ngModel)]="deviceFormData.sim1Info" required />
+              </div>
+              <div>
+                <label>Health Status 1 <span style="color:#ef4444">*</span></label>
+                <select name="sim1HealthStatus" [(ngModel)]="deviceFormData.sim1HealthStatus" required>
+                  <option value="">Select health status</option>
+                  <option value="healthy">Healthy</option>
+                  <option value="warning">Warning</option>
+                  <option value="critical">Critical</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div>
+                <label>SIM ICCID / MSISDN 2 <span style="color:#ef4444">*</span></label>
+                <input type="text" placeholder="Enter SIM ICCID or MSISDN" name="sim2Info" [(ngModel)]="deviceFormData.sim2Info" required />
+              </div>
+              <div>
+                <label>Health Status 2 <span style="color:#ef4444">*</span></label>
+                <select name="sim2HealthStatus" [(ngModel)]="deviceFormData.sim2HealthStatus" required>
+                  <option value="">Select health status</option>
+                  <option value="healthy">Healthy</option>
+                  <option value="warning">Warning</option>
+                  <option value="critical">Critical</option>
+                  <option value="unknown">Unknown</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button class="btn" type="button" (click)="registerDevice()">Register Device</button>
+              <button class="btn ghost" type="button" (click)="clearForm(deviceForm)">Clear</button>
+            </div>
+          </form>
+        </div>
+
+        <div id="device-view" class="tab-content" [class.active]="activeTab === 'view'">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Device Name</th>
+                <th>IMEI</th>
+                <th>Model</th>
+                <th>Vendor</th>
+                <th>Health Status</th>
+                <th>Device Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let device of availableDevices">
+                <td>{{ device.deviceName || '-' }}</td>
+                <td>{{ device.imeiSerial || '-' }}</td>
+                <td>{{ device.model || '-' }}</td>
+                <td>{{ device.vendorName || '-' }}</td>
+                <td>
+                  <span [class.status-active]="(device.healthStatus || '').toLowerCase() === 'healthy'"
+                        [class.status-inactive]="(device.healthStatus || '').toLowerCase() !== 'healthy'">
+                    {{ device.healthStatus || '-' }}
+                  </span>
+                </td>
+                <td>
+                  <span [class.status-active]="(device.deviceStatus || '').toLowerCase() === 'active'"
+                        [class.status-inactive]="(device.deviceStatus || '').toLowerCase() !== 'active'">
+                    {{ device.deviceStatus || '-' }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="availableDevices.length === 0">
+                <td colspan="6" style="text-align:center;">No devices found.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Fit & Activate Section -->
+    <div *ngIf="currentSection === 'fitment'" class="device-section">
+      <div class="card">
+        <div style="font-weight:700;font-size:18px;color:var(--title-color);margin-bottom:16px;">2. Fit & Activate</div>
+        <div class="tabs">
+          <div class="tab" [class.active]="fitmentTab === 'fitment-add'" (click)="setFitmentTab('fitment-add')">Add Fitment</div>
+          <div class="tab" [class.active]="fitmentTab === 'fitment-view'" (click)="setFitmentTab('fitment-view')">View Fitment</div>
+        </div>
+
+        <div id="fitment-add" class="tab-content" [class.active]="fitmentTab === 'fitment-add'">
+          <!-- Device Testing Section (shown first) -->
+          <div *ngIf="!testPassed" style="margin-bottom:30px;padding:20px;background:#f8f9fa;border-radius:8px;border-left:4px solid #008080;">
+            <div style="font-weight:700;font-size:16px;color:var(--title-color);margin-bottom:16px;">Step 1: Test Device (Optional - Prototype Mode)</div>
+            <form #testForm="ngForm">
+              <div class="form-row">
+                <label>Select Device <span style="color:#ef4444">*</span></label>
+                <select name="device" [(ngModel)]="testFormData.device" required>
+                  <option value="">Select device to test</option>
+                  <option *ngFor="let device of availableDevices" [ngValue]="device">
+  {{ device.deviceName }} ({{ device.imeiSerial }})
+</option>
+                </select>
+                <div class="small" style="margin-top:4px;">Only registered devices can be tested</div>
+              </div>
+              <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label>GPS Signal Strength <span style="color:#ef4444">*</span></label>
+                  <select name="gpsSignal" [(ngModel)]="testFormData.gpsSignal" required>
+                    <option value="">Select signal strength</option>
+                    <option value="excellent">Excellent (4+ satellites)</option>
+                    <option value="good">Good (3 satellites)</option>
+                    <option value="fair">Fair (2 satellites)</option>
+                    <option value="poor">Poor (1 satellite)</option>
+                    <option value="no-signal">No Signal</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Network Connectivity <span style="color:#ef4444">*</span></label>
+                  <select name="networkConnectivity" [(ngModel)]="testFormData.networkConnectivity" required>
+                    <option value="">Select connectivity status</option>
+                    <option value="connected">Connected</option>
+                    <option value="weak">Weak Signal</option>
+                    <option value="disconnected">Disconnected</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label>Battery Status <span style="color:#ef4444">*</span></label>
+                  <select name="batteryStatus" [(ngModel)]="testFormData.batteryStatus" required>
+                    <option value="">Select battery status</option>
+                    <option value="full">Full (80-100%)</option>
+                    <option value="good">Good (50-79%)</option>
+                    <option value="low">Low (20-49%)</option>
+                    <option value="critical">Critical (&lt;20%)</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Data Transmission <span style="color:#ef4444">*</span></label>
+                  <select name="dataTransmission" [(ngModel)]="testFormData.dataTransmission" required>
+                    <option value="">Select transmission status</option>
+                    <option value="working">Working</option>
+                    <option value="intermittent">Intermittent</option>
+                    <option value="not-working">Not Working</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label>Test Date & Time <span style="color:#ef4444">*</span></label>
+                  <input type="datetime-local" name="testDateTime" [(ngModel)]="testFormData.testDateTime" required />
+                </div>
+                <div>
+                  <label>Tester Name <span style="color:#ef4444">*</span></label>
+                  <input type="text" placeholder="Enter tester name" name="testerName" [(ngModel)]="testFormData.testerName" required />
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Test Location</label>
+                <input type="text" placeholder="Enter test location (optional)" name="testLocation" [(ngModel)]="testFormData.testLocation" />
+              </div>
+              <div class="form-row">
+                <label>Test Notes / Observations</label>
+                <textarea placeholder="Enter test notes, observations, or issues found (optional)" name="testNotes" [(ngModel)]="testFormData.testNotes" rows="2"></textarea>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <button class="btn" type="button" (click)="submitTest(testForm)">Test Device</button>
+                <button class="btn ghost" type="button" (click)="skipTest()">Skip Test (Prototype)</button>
+                <button class="btn ghost" type="button" (click)="clearTestForm(testForm)">Clear</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Fitment Form (shown after test passes or skipped) -->
+          <div *ngIf="testPassed" style="margin-top:20px;">
+            <div style="font-weight:700;font-size:16px;color:var(--title-color);margin-bottom:16px;padding:12px;background:#e8f5e9;border-radius:6px;border-left:4px solid #4caf50;">
+              ✓ Proceed with Fitment (Prototype Mode)
+            </div>
+            <form #fitmentForm="ngForm">
+              <div class="form-row">
+                <label>Select Device <span style="color:#ef4444">*</span></label>
+                <select name="device" [(ngModel)]="fitmentFormData.device" required>
+                  <option value="">Select device</option>
+                  <option *ngFor="let device of availableDevices" [ngValue]="device">
+                    {{ device.deviceName }} ({{ device.imeiSerial }})
+                  </option>
+                </select>
+              </div>
+              <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label>Vehicle Registration Number <span style="color:#ef4444">*</span></label>
+                  <input type="text" placeholder="Enter vehicle registration number" name="vehicleRegNo" [(ngModel)]="fitmentFormData.vehicleRegNo" required />
+                </div>
+                <div>
+                  <label>Date & Time of Installation <span style="color:#ef4444">*</span></label>
+                  <input type="datetime-local" name="installDateTime" [(ngModel)]="fitmentFormData.installDateTime" required />
+                </div>
+              </div>
+              <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div>
+                  <label>Installer Name <span style="color:#ef4444">*</span></label>
+                  <input type="text" placeholder="Enter installer name" name="installerName" [(ngModel)]="fitmentFormData.installerName" required />
+                </div>
+                <div>
+                  <label>Installer Contact No</label>
+                  <input type="text" placeholder="Enter installer contact number" name="installerContact" [(ngModel)]="fitmentFormData.installerContact" />
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Upload Photos <span style="color:#ef4444">*</span></label>
+                <input type="file" multiple accept=".jpg,.jpeg,.png" name="photos" #fileInput />
+                <div class="small" style="margin-top:4px;">Upload installation photos - JPG, PNG formats</div>
+              </div>
+              <div style="display:flex;gap:8px;margin-top:8px;">
+                <button class="btn" type="button" (click)="submitFitment()">Submit Fitment & Activate</button>
+                <button class="btn ghost" type="button" (click)="resetFitmentFlow()">Start Over</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div id="fitment-view" class="tab-content" [class.active]="fitmentTab === 'fitment-view'">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Device</th>
+                <th>Vehicle Registration</th>
+                <th>Installer</th>
+                <th>Installation Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>GPS-X100</td>
+                <td>OD02AB1234</td>
+                <td>R. Nayak</td>
+                <td>2025-01-15 14:30</td>
+                <td><span class="status-active">Active</span></td>
+                <td>
+                  <button class="btn ghost" style="padding:4px 8px;font-size:12px;" (click)="activateDevice('GPS-X100')">Activate</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deactivate/Maintenance Modal -->
+    <div id="deviceModal" class="modal" [class.show]="showModal">
+      <div class="modal-content">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="margin:0;">{{ modalTitle }}</h3>
+          <button class="btn ghost" (click)="closeDeviceModal()" style="padding:4px 8px;">✕</button>
+        </div>
+        <form #deviceActionForm="ngForm">
+          <div class="form-row">
+            <label>Device Name</label>
+            <input type="text" [(ngModel)]="modalDeviceName" name="modalDeviceName" readonly style="background:#f4f8fa;" />
+          </div>
+          <div class="form-row">
+            <label>Reason <span style="color:#ef4444">*</span></label>
+            <select [(ngModel)]="modalReason" name="modalReason" required>
+              <option value="">Select reason</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="malfunction">Malfunction</option>
+              <option value="theft">Theft</option>
+              <option value="replacement">Replacement</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Additional Notes</label>
+            <textarea [(ngModel)]="modalNotes" name="modalNotes" placeholder="Enter additional notes (optional)"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:16px;">
+            <button class="btn" type="button" (click)="submitDeviceAction()">Confirm</button>
+            <button class="btn ghost" type="button" (click)="closeDeviceModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `,
+  styles: []
+})
+// export class DeviceComponent implements OnInit, OnDestroy {
+//   currentSection = 'registered';
+//   pageTitle = 'Device Tagging';
+//   activeTab = 'add';
+//   fitmentTab = 'fitment-add';
+//   testPassed = false;
+//   showModal = false;
+//   modalTitle = 'Deactivate Device';
+//   modalDeviceName = '';
+//   modalReason = '';
+//   modalNotes = '';
+//   currentAction = '';
+//   private languageSubscription?: Subscription;
+
+//   // All available vendors
+//   allVendors = [
+//     'TrackPro Pvt Ltd (VEN-001)',
+//     'SmartTrack Solutions (VEN-002)'
+//   ];
+
+//   // Vendors list with logged-in vendor first
+//   vendorsList: string[] = [];
+
+//   // Available devices for testing (registered devices)
+//   availableDevices = [
+//     'GPS-X100 (356123456789012)',
+//     'GPS-Mini (490567812345678)'
+//   ];
+
+//   // Tested devices (only passed tests can be fitted)
+//   testedDevices = [
+//     'GPS-X100 (356123456789012)'
+//   ];
+
+//   deviceFormData = {
+//     deviceName: '',
+//     imei: '',
+//     model: '',
+//     firmware: '',
+//     sim1Info: '',
+//     sim1HealthStatus: '',
+//     sim2Info: '',
+//     sim2HealthStatus: '',
+//     vendor: ''
+//   };
+
+//   testFormData = {
+//     device: '',
+//     gpsSignal: '',
+//     networkConnectivity: '',
+//     batteryStatus: '',
+//     dataTransmission: '',
+//     testDateTime: '',
+//     testerName: '',
+//     testLocation: '',
+//     testResult: '',
+//     testNotes: ''
+//   };
+
+//   fitmentFormData = {
+//     device: '',
+//     vehicleRegNo: '',
+//     installDateTime: '',
+//     installerName: '',
+//     installerContact: ''
+//   };
+
+//   constructor(
+//     private route: ActivatedRoute,
+//     private router: Router,
+//     private translationService: TranslationService
+//   ) {}
+
+//   translate(key: string): string {
+//     return this.translationService.translate(key);
+//   }
+
+//   userRole = '';
+
+//   ngOnInit(): void {
+//     // Get user role
+//     this.userRole = sessionStorage.getItem('role') || '';
+
+//     // Subscribe to language changes
+//     this.languageSubscription = this.translationService.language$.subscribe(() => {
+//       // Component will automatically update when language changes
+//     });
+
+//     // Check route data and URL to determine section
+//     this.route.data.subscribe(data => {
+//       if (data['section'] === 'fitment' || this.router.url.includes('/fitment')) {
+//         // Only VTS Admin can access Fit & Activate
+//         if (this.userRole !== 'system-admin') {
+//           Swal.fire({
+//             icon: 'warning',
+//             title: 'Access Denied',
+//             text: 'Only VTS Administrators can access Fit & Activate functionality.',
+//             confirmButtonColor: '#008080'
+//           }).then(() => {
+//             this.router.navigate(['/device']);
+//           });
+//           return;
+//         }
+//         this.currentSection = 'fitment';
+//         this.pageTitle = this.translate('device.fitAndActivate');
+//       } else {
+//         this.currentSection = 'registered';
+//         this.pageTitle = this.translate('device.title');
+//       }
+//     });
+
+//     // Also check URL directly
+//     if (this.router.url.includes('/fitment')) {
+//       // Only VTS Admin can access Fit & Activate
+//       if (this.userRole !== 'system-admin') {
+//         Swal.fire({
+//           icon: 'warning',
+//           title: 'Access Denied',
+//           text: 'Only VTS Administrators can access Fit & Activate functionality.',
+//           confirmButtonColor: '#008080'
+//         }).then(() => {
+//           this.router.navigate(['/device']);
+//         });
+//         return;
+//       }
+//       this.currentSection = 'fitment';
+//       this.pageTitle = this.translate('device.fitAndActivate');
+//     }
+    
+//     // Reset test passed flag when navigating to fitment
+//     if (this.currentSection === 'fitment') {
+//       this.testPassed = false;
+//     }
+
+//     // Initialize vendors list with logged-in vendor first
+//     this.initializeVendorsList();
+
+//     // Restore tab state - check for fresh navigation first
+//     if (this.currentSection === 'registered') {
+//       const isFreshNav = sessionStorage.getItem('freshNav_device-registered') === 'true' || 
+//                          sessionStorage.getItem('freshNav_device') === 'true';
+//       if (isFreshNav) {
+//         // Remove fresh nav flag and default to 'add' tab
+//         sessionStorage.removeItem('freshNav_device-registered');
+//         sessionStorage.removeItem('freshNav_device');
+//         this.activeTab = 'add';
+//       } else {
+//         const stored = sessionStorage.getItem('tab_device');
+//         if (stored) {
+//           this.activeTab = stored;
+//         } else {
+//           this.activeTab = 'add';
+//         }
+//       }
+//     } else {
+//       const isFreshNav = sessionStorage.getItem('freshNav_device-fitment') === 'true' || 
+//                          sessionStorage.getItem('freshNav_device') === 'true';
+//       if (isFreshNav) {
+//         // Remove fresh nav flag and default to 'fitment-add' tab
+//         sessionStorage.removeItem('freshNav_device-fitment');
+//         sessionStorage.removeItem('freshNav_device');
+//         this.fitmentTab = 'fitment-add';
+//         this.testPassed = false;
+//       } else {
+//         const stored = sessionStorage.getItem('tab_fitment');
+//         if (stored) {
+//           this.fitmentTab = stored;
+//         } else {
+//           this.fitmentTab = 'fitment-add';
+//         }
+//       }
+//     }
+//   }
+
+//   initializeVendorsList(): void {
+//     // Get logged-in vendor from session storage
+//     const loggedInVendor = sessionStorage.getItem('loggedInVendor');
+    
+//     if (loggedInVendor) {
+//       // Find the vendor in the list
+//       const vendorIndex = this.allVendors.findIndex(v => v === loggedInVendor || v.includes(loggedInVendor));
+      
+//       if (vendorIndex !== -1) {
+//         // Create a new array with logged-in vendor first
+//         this.vendorsList = [
+//           this.allVendors[vendorIndex],
+//           ...this.allVendors.filter((_, index) => index !== vendorIndex)
+//         ];
+        
+//         // Auto-select the logged-in vendor
+//         this.deviceFormData.vendor = this.allVendors[vendorIndex];
+//       } else {
+//         // If vendor not found in list, use default order
+//         this.vendorsList = [...this.allVendors];
+//         // Try to set from session if it matches any vendor
+//         const matchedVendor = this.allVendors.find(v => v.includes(loggedInVendor));
+//         if (matchedVendor) {
+//           this.deviceFormData.vendor = matchedVendor;
+//         }
+//       }
+//     } else {
+//       // No logged-in vendor, use default order
+//       this.vendorsList = [...this.allVendors];
+      
+//       // For prototype: Set a default vendor if session doesn't have one
+//       // In production, this would come from actual login session
+//       // Uncomment below line to set default vendor for testing:
+//       // this.deviceFormData.vendor = this.allVendors[0];
+//     }
+//   }
+
+//   setActiveTab(tab: string): void {
+//     this.activeTab = tab;
+//     sessionStorage.setItem('tab_device', tab);
+//   }
+
+//   setFitmentTab(tab: string): void {
+//     this.fitmentTab = tab;
+//     sessionStorage.setItem('tab_fitment', tab);
+//   }
+
+//   registerDevice(): void {
+//     Swal.fire({
+//       icon: 'success',
+//       title: 'Success',
+//       text: 'GPS Device registered successfully. Please test the device before fitment. (prototype)',
+//       confirmButtonColor: '#2563eb'
+//     });
+//   }
+
+//   submitTest(form: any): void {
+//     if (!form.valid) {
+//       Swal.fire({
+//         icon: 'warning',
+//         title: 'Validation Error',
+//         text: 'Please fill all required fields',
+//         confirmButtonColor: '#2563eb'
+//       });
+//       return;
+//     }
+
+//     // Simulate test response - check if test passed based on criteria
+//     const testResult = this.determineTestResult();
+    
+//     if (testResult === 'passed') {
+//       this.testPassed = true;
+//       Swal.fire({
+//         icon: 'success',
+//         title: 'Test Passed!',
+//         html: `Device tested successfully and is ready for fitment.<br><br><strong>Device:</strong> ${this.testFormData.device}<br><strong>GPS Signal:</strong> ${this.testFormData.gpsSignal}<br><strong>Network:</strong> ${this.testFormData.networkConnectivity}<br><strong>Battery:</strong> ${this.testFormData.batteryStatus}<br><strong>Tester:</strong> ${this.testFormData.testerName}`,
+//         confirmButtonColor: '#2563eb'
+//       });
+//     } else {
+//       // For prototype: Allow proceeding even if test fails
+//       Swal.fire({
+//         icon: 'warning',
+//         title: 'Test Issues Detected',
+//         html: `Some test issues were detected, but you can proceed with fitment (prototype mode).<br><br><strong>Device:</strong> ${this.testFormData.device}<br><strong>Issue:</strong> ${this.getTestFailureReason()}<br><strong>Notes:</strong> ${this.testFormData.testNotes || 'None'}`,
+//         confirmButtonText: 'Proceed Anyway',
+//         confirmButtonColor: '#2563eb',
+//         showCancelButton: false
+//       }).then(() => {
+//         // Allow proceeding even if test failed (prototype)
+//         this.testPassed = true;
+//       });
+//     }
+//   }
+
+//   determineTestResult(): string {
+//     // Auto-determine test result based on inputs
+//     if (this.testFormData.gpsSignal === 'no-signal' || 
+//         this.testFormData.networkConnectivity === 'disconnected' ||
+//         this.testFormData.dataTransmission === 'not-working' ||
+//         this.testFormData.batteryStatus === 'critical') {
+//       return 'failed';
+//     }
+//     if (this.testFormData.gpsSignal === 'poor' || 
+//         this.testFormData.networkConnectivity === 'weak' ||
+//         this.testFormData.dataTransmission === 'intermittent' ||
+//         this.testFormData.batteryStatus === 'low') {
+//       return 'conditional';
+//     }
+//     return 'passed';
+//   }
+
+//   getTestFailureReason(): string {
+//     if (this.testFormData.gpsSignal === 'no-signal') return 'No GPS Signal';
+//     if (this.testFormData.networkConnectivity === 'disconnected') return 'Network Disconnected';
+//     if (this.testFormData.dataTransmission === 'not-working') return 'Data Transmission Not Working';
+//     if (this.testFormData.batteryStatus === 'critical') return 'Battery Critical';
+//     return 'Multiple issues detected';
+//   }
+
+//   skipTest(): void {
+//     // For prototype: Allow skipping test and proceed directly to fitment
+//     this.testPassed = true;
+//   }
+
+//   clearTestForm(form: any): void {
+//     form.reset();
+//     this.testFormData = {
+//       device: '',
+//       gpsSignal: '',
+//       networkConnectivity: '',
+//       batteryStatus: '',
+//       dataTransmission: '',
+//       testDateTime: '',
+//       testerName: '',
+//       testLocation: '',
+//       testResult: '',
+//       testNotes: ''
+//     };
+//   }
+
+//   resetFitmentFlow(): void {
+//     this.testPassed = false;
+//     this.clearTestForm({ reset: () => {} });
+//     this.fitmentFormData = {
+//       device: '',
+//       vehicleRegNo: '',
+//       installDateTime: '',
+//       installerName: '',
+//       installerContact: ''
+//     };
+//   }
+
+//   submitFitment(): void {
+//     // For prototype: Allow fitment even without test (remove blocking)
+//     // Just show a warning if no device selected
+//     const selectedDevice = this.fitmentFormData.device || this.testFormData.device;
+//     if (!selectedDevice || !this.fitmentFormData.vehicleRegNo) {
+//       Swal.fire({
+//         icon: 'warning',
+//         title: 'Missing Information',
+//         text: 'Please select a device and enter vehicle details.',
+//         confirmButtonColor: '#2563eb'
+//       });
+//       return;
+//     }
+
+//     Swal.fire({
+//       icon: 'success',
+//       title: 'Fitment Submitted',
+//       html: `Device fitment submitted successfully.<br><br><strong>Device:</strong> ${selectedDevice}<br><strong>Vehicle:</strong> ${this.fitmentFormData.vehicleRegNo}<br><br>Device will be activated after first valid GPS ping within 5 minutes. (prototype)`,
+//       confirmButtonColor: '#2563eb'
+//     }).then(() => {
+//       // Reset the flow after successful submission
+//       this.resetFitmentFlow();
+//     });
+//   }
+
+//   clearForm(form: any): void {
+//     form.reset();
+//   }
+
+//   showDeactivateModal(deviceName: string): void {
+//     this.modalDeviceName = deviceName;
+//     this.currentAction = 'deactivate';
+//     this.modalTitle = 'Deactivate Device';
+//     this.showModal = true;
+//   }
+
+//   showMaintenanceModal(deviceName: string): void {
+//     this.modalDeviceName = deviceName;
+//     this.currentAction = 'maintenance';
+//     this.modalTitle = 'Device Maintenance';
+//     this.showModal = true;
+//   }
+
+//   closeDeviceModal(): void {
+//     this.showModal = false;
+//     this.modalDeviceName = '';
+//     this.modalReason = '';
+//     this.modalNotes = '';
+//     this.currentAction = '';
+//   }
+
+//   submitDeviceAction(): void {
+//     if (!this.modalReason) {
+//       Swal.fire({
+//         icon: 'warning',
+//         title: 'Required Field',
+//         text: 'Please select a reason',
+//         confirmButtonColor: '#2563eb'
+//       });
+//       return;
+//     }
+//     const actionText = this.currentAction === 'deactivate' ? 'Device deactivated' : 'Device marked for maintenance';
+//     const icon = this.currentAction === 'deactivate' ? 'info' : 'warning';
+//     Swal.fire({
+//       icon: icon,
+//       title: actionText,
+//       html: `Reason: ${this.modalReason}. ${this.modalNotes ? '<br>Notes: ' + this.modalNotes : ''}<br><br>Tracking stopped, alerts suppressed. (prototype)`,
+//       confirmButtonColor: '#2563eb'
+//     });
+//     this.closeDeviceModal();
+//   }
+
+//   viewFitmentDetails(): void {
+//     Swal.fire({
+//       icon: 'info',
+//       title: 'Fitment Details',
+//       text: 'View fitment details (prototype)',
+//       confirmButtonColor: '#2563eb'
+//     });
+//   }
+
+//   activateDevice(deviceName: string): void {
+//     Swal.fire({
+//       icon: 'question',
+//       title: 'Confirm Activation',
+//       text: `Are you sure you want to activate device ${deviceName}?`,
+//       showCancelButton: true,
+//       confirmButtonText: 'Yes, Activate',
+//       cancelButtonText: 'Cancel',
+//       confirmButtonColor: '#2563eb',
+//       cancelButtonColor: '#6b7280'
+//     }).then((result) => {
+//       if (result.isConfirmed) {
+//         Swal.fire({
+//           icon: 'success',
+//           title: 'Device Activated',
+//           text: `Device ${deviceName} activated successfully. (prototype)`,
+//           confirmButtonColor: '#2563eb'
+//         });
+//       }
+//     });
+//   }
+
+//   ngOnDestroy(): void {
+//     this.languageSubscription?.unsubscribe();
+//   }
+// }
+
+
+
+export class DeviceComponent implements OnInit, OnDestroy {
+  currentSection = 'registered';
+  pageTitle = 'Device Tagging';
+  activeTab = 'add';
+  fitmentTab = 'fitment-add';
+  testPassed = false;
+  showModal = false;
+  modalTitle = 'Deactivate Device';
+  modalDeviceName = '';
+  modalReason = '';
+  modalNotes = '';
+  currentAction = '';
+  private languageSubscription?: Subscription;
+
+  vendorsList: VendorOption[] = [];
+  availableDevices: Device[] = [];
+
+
+  deviceFormData = {
+    deviceName: '',
+    imei: '',
+    model: '',
+    firmware: '',
+    sim1Info: '',
+    sim1HealthStatus: '',
+    sim2Info: '',
+    sim2HealthStatus: '',
+    vendor: ''
+  };
+
+  testFormData = {
+    // device: '',
+    device: null as Device | null,
+    gpsSignal: '',
+    networkConnectivity: '',
+    batteryStatus: '',
+    dataTransmission: '',
+    testDateTime: '',
+    testerName: '',
+    testLocation: '',
+    testResult: '',
+    testNotes: ''
+  };
+
+  fitmentFormData = {
+    // device: '',
+    device: null as Device | null,
+    vehicleRegNo: '',
+    installDateTime: '',
+    installerName: '',
+    installerContact: ''
+  };
+
+  userRole = '';
+
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private translationService: TranslationService,
+    private deviceService: DeviceService
+  ) {}
+
+  translate(key: string): string {
+    return this.translationService.translate(key);
+  }
+
+  ngOnInit(): void {
+    this.userRole = sessionStorage.getItem('role') || '';
+
+    this.languageSubscription = this.translationService.language$.subscribe(() => {});
+
+    this.route.data.subscribe(data => {
+      if (data['section'] === 'fitment' || this.router.url.includes('/fitment')) {
+        if (this.userRole !== 'system-admin') {
+          Swal.fire('Access Denied', 'Only VTS Administrators can access Fitment.', 'warning');
+          this.router.navigate(['/device']);
+          return;
+        }
+        this.currentSection = 'fitment';
+      } else {
+        this.currentSection = 'registered';
+      }
+    });
+
+    this.loadVendors();
+    this.loadDevices();
+  }
+
+  loadVendors(): void {
+    this.deviceService.getVendors().subscribe({
+      next: (res) => {
+        const rawVendors = this.extractArray(res);
+        this.vendorsList = rawVendors
+          .map((vendor: any) => this.normalizeVendor(vendor))
+          .filter((vendor: VendorOption) => !!vendor.id);
+
+        if (!this.deviceFormData.vendor && this.vendorsList.length > 0) {
+          this.deviceFormData.vendor = this.vendorsList[0].id;
+        }
+      },
+      error: () => Swal.fire('Error', 'Failed to load vendors', 'error')
+    });
+  }
+
+  // loadDevices(): void {
+  //   this.deviceService.listDevices().subscribe({
+  //     next: (res) => {
+  //       this.availableDevices = (res.data || []).map((d: any) =>
+  //         `${d.deviceName} (${d.imeiSerial})`
+  //       );
+  //     }
+  //   });
+  // }
+
+
+  loadDevices(): void {
+    this.deviceService.listDevices().subscribe({
+      next: (res) => {
+        const rawDevices = this.extractArray(res);
+        this.availableDevices = rawDevices.map((device: any) => this.normalizeDevice(device));
+      },
+      error: () => Swal.fire('Error', 'Failed to load devices', 'error')
+    });
+  }
+
+  setActiveTab(tab: string): void {
+    this.activeTab = tab;
+    if (tab === 'view') this.loadDevices();
+  }
+
+  extractVendorId(label: string): string {
+    const match = label?.match(/\((.*?)\)/);
+    return match ? match[1] : label;
+  }
+
+  registerDevice(): void {
+    const payload = {
+      deviceName: this.deviceFormData.deviceName,
+      imeiSerial: this.deviceFormData.imei,
+      model: this.deviceFormData.model,
+      firmwareVersion: this.deviceFormData.firmware || null,
+      simIccid: this.deviceFormData.sim1Info,
+      simMsisdn: this.deviceFormData.sim1Info,
+      simIccid2: this.deviceFormData.sim2Info || null,
+      simMsisdn2: this.deviceFormData.sim2Info || null,
+      healthStatus: this.deviceFormData.sim1HealthStatus.toUpperCase(),
+      deviceStatus: 'ACTIVE',
+      vendorId: this.extractVendorId(this.deviceFormData.vendor),
+      registeredBy: sessionStorage.getItem('username'),
+      remarks: 'Registered from UI'
+    };
+
+    this.deviceService.registerDevice(payload).subscribe({
+      next: () => {
+        Swal.fire('Success', 'Device registered successfully', 'success');
+        this.activeTab = 'view';
+        this.loadDevices();
+        this.clearForm({ reset: () => {} });
+      },
+      error: (err) => {
+        Swal.fire('Error', err?.error?.message || 'Registration failed', 'error');
+      }
+    });
+  }
+
+  submitTest(form: any): void {
+    if (!form.valid || !this.testFormData.device) {
+      Swal.fire('Validation Error', 'Fill required fields and select a device', 'warning');
+      return;
+    }
+
+    const d = this.testFormData.device;
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Test Passed',
+      html: `
+        <strong>Device:</strong> ${d.deviceName} (${d.imeiSerial})<br>
+        <strong>Tester:</strong> ${this.testFormData.testerName}
+      `
+    });
+
+    this.testPassed = true;
+    Swal.fire('Success', 'Device tested (prototype)', 'success');
+  }
+
+  submitFitment(): void {
+    const d = this.fitmentFormData.device || this.testFormData.device;
+
+    if (!d || !this.fitmentFormData.vehicleRegNo) {
+      Swal.fire('Missing Info', 'Select device and enter vehicle number', 'warning');
+      return;
+    }
+
+    Swal.fire({
+      icon: 'success',
+      title: 'Fitment Submitted',
+      html: `
+        <strong>Device:</strong> ${d.deviceName} (${d.imeiSerial})<br>
+        <strong>Vehicle:</strong> ${this.fitmentFormData.vehicleRegNo}
+      `
+    });
+
+    this.resetFitmentFlow();
+  }
+
+  ngOnDestroy(): void {
+    this.languageSubscription?.unsubscribe();
+  }
+
+  clearForm(form: any): void {
+  if (form?.reset) {
+    form.reset();
+  }
+
+  this.deviceFormData = {
+    deviceName: '',
+    imei: '',
+    model: '',
+    firmware: '',
+    sim1Info: '',
+    sim1HealthStatus: '',
+    sim2Info: '',
+    sim2HealthStatus: '',
+    vendor: ''
+  };
+}
+
+skipTest(): void {
+  Swal.fire({
+    icon: 'info',
+    title: 'Test Skipped',
+    text: 'Device testing skipped (prototype mode). You can proceed with fitment.',
+    confirmButtonColor: '#2563eb'
+  });
+
+  this.testPassed = true;
+}
+
+clearTestForm(form: any): void {
+  if (form?.reset) {
+    form.reset();
+  }
+
+  this.testFormData = {
+    device: null as Device | null,
+    gpsSignal: '',
+    networkConnectivity: '',
+    batteryStatus: '',
+    dataTransmission: '',
+    testDateTime: '',
+    testerName: '',
+    testLocation: '',
+    testResult: '',
+    testNotes: ''
+  };
+}
+
+resetFitmentFlow(): void {
+  this.testPassed = false;
+
+  this.clearTestForm({ reset: () => {} });
+
+  this.fitmentFormData = {
+    device: null,
+    vehicleRegNo: '',
+    installDateTime: '',
+    installerName: '',
+    installerContact: ''
+  };
+
+  Swal.fire({
+    icon: 'info',
+    title: 'Flow Reset',
+    text: 'Fitment flow has been reset. You can start again.',
+    confirmButtonColor: '#2563eb'
+  });
+}
+
+activateDevice(deviceName: string): void {
+  Swal.fire({
+    icon: 'question',
+    title: 'Activate Device?',
+    text: `Are you sure you want to activate ${deviceName}?`,
+    showCancelButton: true,
+    confirmButtonText: 'Yes, Activate',
+    cancelButtonText: 'Cancel',
+    confirmButtonColor: '#2563eb'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // TODO: Call backend API here
+      Swal.fire({
+        icon: 'success',
+        title: 'Activated',
+        text: `${deviceName} activated successfully.`,
+        confirmButtonColor: '#2563eb'
+      });
+    }
+  });
+}
+
+closeDeviceModal(): void {
+  this.showModal = false;
+  this.modalDeviceName = '';
+  this.modalReason = '';
+  this.modalNotes = '';
+  this.currentAction = '';
+}
+
+submitDeviceAction(): void {
+  if (!this.modalReason) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Reason Required',
+      text: 'Please select a reason before proceeding.',
+      confirmButtonColor: '#2563eb'
+    });
+    return;
+  }
+
+  const actionText =
+    this.currentAction === 'deactivate'
+      ? 'Device Deactivated'
+      : 'Device Marked for Maintenance';
+
+  // TODO: Call backend API here
+  Swal.fire({
+    icon: 'success',
+    title: actionText,
+    html: `
+      <strong>Device:</strong> ${this.modalDeviceName}<br>
+      <strong>Reason:</strong> ${this.modalReason}<br>
+      ${this.modalNotes ? `<strong>Notes:</strong> ${this.modalNotes}` : ''}
+    `,
+    confirmButtonColor: '#2563eb'
+  });
+
+  this.closeDeviceModal();
+}
+
+setFitmentTab(tab: 'fitment-add' | 'fitment-list' | 'fitment-history'|'fitment-view'): void {
+  this.fitmentTab = tab;
+
+  // Optional: reset forms when switching tabs
+  if (tab === 'fitment-add') {
+    this.resetFitmentFlow();
+  }
+
+  if (tab === 'fitment-list') {
+    this.loadFitmentList();
+  }
+
+  if (tab === 'fitment-view') {
+    this.loadFitmentView();
+  }
+
+  if (tab === 'fitment-history') {
+    this.loadFitmentHistory();
+  }
+}
+loadFitmentList(): void {
+  console.log('Loading fitment list...');
+  // TODO: call backend API
+}
+
+loadFitmentView(): void {
+  console.log('Loading fitment view...');
+  // TODO: call backend API
+}
+
+loadFitmentHistory(): void {
+  console.log('Loading fitment history...');
+  // TODO: call backend API
+}
+
+private extractArray(response: any): any[] {
+  if (Array.isArray(response)) {
+    return response;
+  }
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+  if (Array.isArray(response?.content)) {
+    return response.content;
+  }
+  if (Array.isArray(response?.result)) {
+    return response.result;
+  }
+  return [];
+}
+
+private normalizeVendor(vendor: any): VendorOption {
+  if (typeof vendor === 'string') {
+    const id = this.extractVendorId(vendor);
+    const name = vendor.replace(/\((.*?)\)/, '').trim();
+    return {
+      id: id || vendor,
+      name,
+      label: id ? `${name} (${id})` : name
+    };
+  }
+
+  const id =
+    vendor?.vendorId ||
+    vendor?.id ||
+    vendor?.ssoId ||
+    vendor?.ssoid ||
+    '';
+
+  const name =
+    vendor?.vendorName ||
+    vendor?.name ||
+    vendor?.vendorOrgName ||
+    vendor?.organizationName ||
+    '';
+
+  return {
+    id: String(id || '').trim(),
+    name: String(name || '').trim(),
+    label: id && name ? `${name} (${id})` : String(name || id || '').trim()
+  };
+}
+
+private normalizeDevice(device: any): Device {
+  return {
+    deviceName: device?.deviceName || device?.name || '',
+    imeiSerial: device?.imeiSerial || device?.imei || device?.serialNo || '',
+    model: device?.model || '',
+    firmwareVersion: device?.firmwareVersion || device?.firmware || '',
+    deviceStatus: device?.deviceStatus || device?.status || '',
+    vendorName: device?.vendorName || device?.vendor || '',
+    healthStatus: device?.healthStatus || ''
+  };
+}
+
+}

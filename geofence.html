@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Geo-Fencing — Rajmines VTS</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body onload="initializePage('geofence')">
+  <header class="header">
+    <div class="left">
+      <button class="hamburger-menu" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <div class="breadcrumb">
+        <span class="breadcrumb-icon">⌂</span>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-text">Geo-Fencing</span>
+      </div>
+    </div>
+    <div class="right">
+      <button class="btn" onclick="alert('Map view placeholder')">View Map</button>
+      <div class="header-separator"></div>
+      <div class="user-info">
+        <div class="user-icon">👤</div>
+        <div class="welcome-text">
+          <div>Welcome</div>
+          <div>User</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar" aria-label="Sidebar">
+      <!-- sidebar rendered by JS -->
+    </aside>
+
+    <main class="main">
+      <div class="card">
+        <div class="page-title">Geo-Fencing</div>
+        <div class="small">DMG Rajasthan aligned prototype — offline</div>
+      </div>
+
+      
+<div class="card">
+  <div class="tabs">
+    <div class="tab" data-tab="list">List</div>
+    <div class="tab" data-tab="create">Create</div>
+  </div>
+
+  <div id="geofence-list" class="tab-content active">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Fence Name</th>
+          <th>Coordinates</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Mine Area A</td>
+          <td>26.9124°N, 75.7873°E</td>
+          <td class="status-active">Active</td>
+          <td><button class="btn ghost" style="padding:4px 8px;font-size:12px;" onclick="alert('Edit fence (prototype)')">Edit</button></td>
+        </tr>
+        <tr>
+          <td>Restricted Zone B</td>
+          <td>26.9150°N, 75.7900°E</td>
+          <td class="status-active">Active</td>
+          <td><button class="btn ghost" style="padding:4px 8px;font-size:12px;" onclick="alert('Edit fence (prototype)')">Edit</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="geofence-create" class="tab-content">
+    <form id="geoForm">
+      <div class="form-row">
+        <label>Fence Name</label>
+        <input type="text" placeholder="Enter fence name" name="name" required />
+      </div>
+      <div class="form-row">
+        <label>Coordinates / Notes</label>
+        <textarea placeholder="Enter coordinates or notes" name="coords" style="min-height:60px;"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn" type="button" onclick="alert('Geofence created (prototype)')">Create Fence</button>
+        <button class="btn ghost" type="button" onclick="document.getElementById('geoForm').reset()">Clear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class VendorService {
+  private apiUrl = 'http://localhost:8089/api/vendor';
+
+  constructor(private http: HttpClient) {}
+
+  registerVendor(
+    vendorData: any,
+    gstFile: File,
+    panFile: File,
+    vendorDoc?: File,
+  ): Observable<any> {
+    const normalizedVendorId = this.resolveVendorId(vendorData);
+    const payload = {
+      ...vendorData,
+      vendorId: normalizedVendorId,
+      ssoid: normalizedVendorId,
+      ssoId: normalizedVendorId,
+      contactNo: vendorData?.contactNo || vendorData?.mobile || vendorData?.contact || '',
+      gstNumber: vendorData?.gstNumber || vendorData?.gst || '',
+      panNumber: vendorData?.panNumber || vendorData?.pan || '',
+      aadharNumber: vendorData?.aadharNumber || vendorData?.aadhar || '',
+      createdBy: vendorData?.createdBy || normalizedVendorId
+    };
+
+    const formData = new FormData();
+    formData.append(
+      'vendorData',
+      new Blob([JSON.stringify(payload)], { type: 'application/json' }),
+    );
+
+    formData.append('gstFile', gstFile);
+    formData.append('panFile', panFile);
+    if (vendorDoc) {
+      formData.append('vendorDoc', vendorDoc);
+    }
+    return this.http.post(`${this.apiUrl}/register`, formData);
+  }
+
+  uploadFiles(vendorId: string, files: File[]) {
+    const resolvedVendorId = this.resolveVendorId({ vendorId });
+    const formData = new FormData();
+    files.forEach((f) => formData.append('files', f));
+    return this.http.post(`${this.apiUrl}/upload/${resolvedVendorId}`, formData);
+  }
+
+  prefillVendor(vendorId: string) {
+    const resolvedVendorId = this.resolveVendorId({ vendorId });
+    return this.http.get(`${this.apiUrl}/prefill/${resolvedVendorId}`);
+  }
+
+  private resolveVendorId(data: any): string {
+    return data?.vendorId || data?.ssoid || data?.ssoId || '';
+  }
+}

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Vendor Enrollment — Rajmines VTS</title>
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body onload="initializePage('vendor')">
+  <header class="header">
+    <div class="left">
+      <button class="hamburger-menu" onclick="toggleSidebar()" aria-label="Menu">☰</button>
+      <div class="breadcrumb">
+        <span class="breadcrumb-icon">⌂</span>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-text">Vendor Enrollment</span>
+      </div>
+    </div>
+    <div class="right">
+      <button class="btn" onclick="alert('Map view placeholder')">View Map</button>
+      <div class="header-separator"></div>
+      <div class="user-info">
+        <div class="user-icon">👤</div>
+        <div class="welcome-text">
+          <div>Welcome</div>
+          <div>User</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <aside class="sidebar" aria-label="Sidebar">
+      <!-- sidebar rendered by JS -->
+    </aside>
+
+    <main class="main">
+      <div class="card">
+        <div class="page-title">Vendor Enrollment</div>
+        <div class="small">DMG Rajasthan aligned prototype — offline</div>
+      </div>
+
+      
+<div class="card">
+  <div class="tabs">
+    <div class="tab" data-tab="add">Add</div>
+    <div class="tab" data-tab="view">View</div>
+  </div>
+
+  <div id="vendor-add" class="tab-content active">
+    <form id="vendorForm">
+      <div class="form-row">
+        <label>Vendor / Org Name <span style="color:#ef4444">*</span></label>
+        <input type="text" placeholder="Enter vendor/organization name" name="vendorName" required />
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>Email <span style="color:#ef4444">*</span></label>
+          <input type="email" placeholder="Enter email" name="email" required />
+        </div>
+        <div>
+          <label>Contact No <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter contact number" name="contact" required />
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Address <span style="color:#ef4444">*</span></label>
+        <textarea placeholder="Enter address" name="address" required style="min-height:60px;"></textarea>
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div>
+          <label>PinCode <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter pincode" name="pincode" required />
+        </div>
+        <div>
+          <label>GST <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter GST number" name="gst" required />
+        </div>
+        <div>
+          <label>PAN <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter PAN number" name="pan" required />
+        </div>
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>Contact Person Name <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter contact person name" name="contactPersonName" required />
+        </div>
+        <div>
+          <label>Contact Person No <span style="color:#ef4444">*</span></label>
+          <input type="text" placeholder="Enter contact person number" name="contactPersonNo" required />
+        </div>
+      </div>
+      <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>Documents <span style="color:#ef4444">*</span></label>
+          <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png" name="documents" required />
+          <div class="small" style="margin-top:4px;">Upload required documents (PAN, GST, etc.) - PDF, JPG, PNG formats</div>
+        </div>
+        <div>
+          <label>Status</label>
+          <select name="status">
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn" type="button" onclick="alert('Vendor enrolled successfully. Unique ID generated. (prototype)')">Enroll Vendor</button>
+        <button class="btn ghost" type="button" onclick="document.getElementById('vendorForm').reset()">Clear</button>
+      </div>
+    </form>
+  </div>
+
+  <div id="vendor-view" class="tab-content">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Vendor ID</th>
+          <th>Vendor Name</th>
+          <th>Email</th>
+          <th>Contact</th>
+          <th>GST</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>VEN-001</td>
+          <td>TrackPro Pvt Ltd</td>
+          <td>info@trackpro.in</td>
+          <td>9876543210</td>
+          <td>29ABCDE1234F1Z5</td>
+          <td class="status-active">Active</td>
+          <td><button class="btn ghost" style="padding:4px 8px;font-size:12px;" onclick="alert('Deactivate vendor (prototype)')">Deactivate</button></td>
+        </tr>
+        <tr>
+          <td>VEN-002</td>
+          <td>SmartTrack Solutions</td>
+          <td>admin@smarttrack.com</td>
+          <td>9090909090</td>
+          <td>29FGHIJ5678K2Z6</td>
+          <td class="status-inactive">Inactive</td>
+          <td><button class="btn ghost" style="padding:4px 8px;font-size:12px;" onclick="alert('Activate vendor (prototype)')">Activate</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+    </main>
+  </div>
+
+  <script src="assets/script.js"></script>
+</body>
+</html>
