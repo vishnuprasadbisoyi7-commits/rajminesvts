@@ -17,7 +17,10 @@ export const authGuard: CanActivateFn = (_route, state) => {
     '/device/fitment',
     '/create-group',
     '/create-user',
-    '/user-menu-mapping'
+    '/user-menu-mapping',
+    '/function-master',
+    '/global-link',
+    '/primary-link'
   ];
 
   if (role === 'system-admin') {

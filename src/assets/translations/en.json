@@ -45,7 +45,10 @@
     "fitAndActivate": "Fit & Activate",
      "createGroup": "Create Group",
   "createUser": "Create User",
-  "userMenuMapping": "User Menu Mapping"
+  "userMenuMapping": "User Menu Mapping",
+  "functionMaster": "Function Master",
+  "globalLink": "Global Link",
+  "primaryLink": "Primary Link"
   },
   "roleSelection": {
     "title": "Select Role",

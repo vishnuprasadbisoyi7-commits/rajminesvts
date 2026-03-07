@@ -45,7 +45,10 @@
     "fitAndActivate": "फिट और सक्रिय करें",
     "createGroup": "समूह बनाएं",
 "createUser": "उपयोगकर्ता बनाएं",
-"userMenuMapping": "उपयोगकर्ता मेनू मैपिंग"
+"userMenuMapping": "उपयोगकर्ता मेनू मैपिंग",
+"functionMaster": "फंक्शन मास्टर",
+"globalLink": "ग्लोबल लिंक",
+"primaryLink": "प्राथमिक लिंक"
   },
   "roleSelection": {
     "title": "रोल चुनें",

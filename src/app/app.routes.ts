@@ -14,6 +14,9 @@ import { authGuard } from './guards/auth.guard';
 import { CreateuserComponent } from './pages/createuser/createuser.component';
 import { CreategroupComponent } from './pages/creategroup/creategroup.component';
 import { UsermenumappingComponent } from './pages/usermenumapping/usermenumapping.component';
+import { PrimaryLinkComponent } from './pages/primary-link/primary-link.component';
+import { FunctionMasterComponent } from './pages/function-master/function-master.component';
+import { GlobalLinkComponent } from './pages/global-link/global-link.component';
 
 export const routes: Routes = [
   { path: '', redirectTo: '/role-selection', pathMatch: 'full' },
@@ -33,6 +36,10 @@ export const routes: Routes = [
   {path:'create-group',component: CreategroupComponent, canActivate: [authGuard]},
   {path:'user-menu-mapping', component: UsermenumappingComponent, canActivate: [authGuard]
     
-  }
+  },
+  { path: 'function-master', component: FunctionMasterComponent , canActivate: [authGuard]},
+
+    { path: 'global-link', component: GlobalLinkComponent, canActivate: [authGuard] },
+    {path: 'primary-link', component: PrimaryLinkComponent, canActivate: [authGuard] }
 ];
 

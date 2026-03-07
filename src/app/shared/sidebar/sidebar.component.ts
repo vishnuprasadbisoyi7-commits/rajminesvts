@@ -233,6 +233,33 @@ export class SidebarComponent implements OnInit, OnDestroy {
           type: 'link'
         },
         {
+        id: 'function-master',
+        title: this.translationService.translate('sidebar.functionMaster'),
+         type: 'section',
+         children: [
+          { id: 'function-master-link', title: 'Function Master', route: '/function-master', type: 'link' }
+         ]
+},
+
+{
+  id: 'global-link',
+  title: this.translationService.translate('sidebar.globalLink'),
+  type: 'section',
+  children: [
+    { id: 'global-link-link', title: 'Global Link', route: '/global-link', type: 'link' }
+  ]
+},
+
+
+{
+  id: 'primary-link',
+  title: this.translationService.translate('sidebar.primaryLink'),
+  type: 'section',
+  children: [
+    {id: 'primary-link-link', title:'Primary Link',route: '/primary-link',type: 'link'}
+  ]
+},
+        {
           id: 'create-group',
           title: this.translationService.translate('sidebar.createGroup'),
           route: '/create-group',
@@ -249,7 +276,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
           title: this.translationService.translate('sidebar.userMenuMapping'),
           route: '/user-menu-mapping',
           type: 'link'
-        },
+        },     
         {
           id: 'notifications',
           title: this.translationService.translate('sidebar.notifications'),
