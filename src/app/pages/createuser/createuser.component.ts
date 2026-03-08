@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { CreateUserResponse, CreateUserService, GroupListItem } from '../../services/create-user.service';
+import { CreateUserResponse, CreateUserService, UserListItem } from '../../services/create-user.service';
+import { GroupListItem, GroupService } from '../../services/group.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -11,90 +12,139 @@ import Swal from 'sweetalert2';
   template: `
     <div class="card">
       <div class="page-title">Create User</div>
-      <div class="small">Select group and enter user details to create a new admin user.</div>
+      <div class="small">Create user and view user list.</div>
     </div>
 
     <div class="card">
-      <form (ngSubmit)="submitUser()" #userForm="ngForm">
-        <div class="grid">
-          <div class="field">
-            <label class="field-label" for="groupName">Group Name</label>
-            <select
-              id="groupName"
-              name="groupName"
-              class="field-input"
-              [(ngModel)]="form.groupname"
-              required
-              [disabled]="isGroupsLoading || isSubmitting">
-              <option value="" disabled>Select group</option>
-              <option *ngFor="let group of groups" [value]="group.group_name">
-                {{ group.group_name }}
-              </option>
-            </select>
+      <div class="tabs">
+        <div class="tab" [class.active]="activeTab === 'add'" (click)="setTab('add')">Add</div>
+        <div class="tab" [class.active]="activeTab === 'view'" (click)="setTab('view')">View</div>
+      </div>
+
+      <div class="tab-content" [class.active]="activeTab === 'add'">
+        <form (ngSubmit)="submitUser()" #userForm="ngForm">
+          <div class="grid">
+            <div class="field">
+              <label class="field-label" for="groupName">Group Name</label>
+              <select
+                id="groupName"
+                name="groupName"
+                class="field-input"
+                [(ngModel)]="form.groupname"
+                required
+                [disabled]="isGroupsLoading || isSubmitting">
+                <option value="" disabled>Select group</option>
+                <option *ngFor="let group of groups" [value]="group.group_name">
+                  {{ group.group_name }}
+                </option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="fullname">Full Name</label>
+              <textarea
+                id="fullname"
+                name="fullname"
+                rows="2"
+                class="field-input"
+                placeholder="Enter full name"
+                [(ngModel)]="form.fullname"
+                required
+                [disabled]="isSubmitting"></textarea>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="username">Username</label>
+              <textarea
+                id="username"
+                name="username"
+                rows="2"
+                class="field-input"
+                placeholder="Enter username"
+                [(ngModel)]="form.username"
+                required
+                [disabled]="isSubmitting"></textarea>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="mobileno">Mobile Number</label>
+              <textarea
+                id="mobileno"
+                name="mobileno"
+                rows="2"
+                class="field-input"
+                placeholder="Enter mobile number"
+                [(ngModel)]="form.mobileno"
+                required
+                [disabled]="isSubmitting"></textarea>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="email">Email ID</label>
+              <textarea
+                id="email"
+                name="email"
+                rows="2"
+                class="field-input"
+                placeholder="Enter email id"
+                [(ngModel)]="form.email"
+                required
+                [disabled]="isSubmitting"></textarea>
+            </div>
           </div>
 
-          <div class="field">
-            <label class="field-label" for="fullname">Full Name</label>
-            <textarea
-              id="fullname"
-              name="fullname"
-              rows="2"
-              class="field-input"
-              placeholder="Enter full name"
-              [(ngModel)]="form.fullname"
-              required
-              [disabled]="isSubmitting"></textarea>
+          <div class="action-row">
+            <button
+              class="btn-submit"
+              type="submit"
+              [disabled]="isSubmitting || isGroupsLoading || !userForm.form.valid">
+              {{ isSubmitting ? 'Submitting...' : 'Submit' }}
+            </button>
           </div>
+        </form>
+      </div>
 
-          <div class="field">
-            <label class="field-label" for="username">Username</label>
-            <textarea
-              id="username"
-              name="username"
-              rows="2"
-              class="field-input"
-              placeholder="Enter username"
-              [(ngModel)]="form.username"
-              required
-              [disabled]="isSubmitting"></textarea>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="mobileno">Mobile Number</label>
-            <textarea
-              id="mobileno"
-              name="mobileno"
-              rows="2"
-              class="field-input"
-              placeholder="Enter mobile number"
-              [(ngModel)]="form.mobileno"
-              required
-              [disabled]="isSubmitting"></textarea>
-          </div>
-
-          <div class="field">
-            <label class="field-label" for="email">Email ID</label>
-            <textarea
-              id="email"
-              name="email"
-              rows="2"
-              class="field-input"
-              placeholder="Enter email id"
-              [(ngModel)]="form.email"
-              required
-              [disabled]="isSubmitting"></textarea>
-          </div>
+      <div class="tab-content" [class.active]="activeTab === 'view'">
+        <div class="table-wrap" *ngIf="users.length > 0; else usersEmpty">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Group</th>
+                <th>Full Name</th>
+                <th>Username</th>
+                <th>Mobile</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of users">
+                <td>{{ user.id }}</td>
+                <td>{{ user.groupname }}</td>
+                <td>{{ user.fullname }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.mobileno }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role }}</td>
+                <td>{{ user.is_active }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <div class="action-row">
-          <button
-            class="btn-submit"
-            type="submit"
-            [disabled]="isSubmitting || isGroupsLoading || !userForm.form.valid">
-            {{ isSubmitting ? 'Submitting...' : 'Submit' }}
+        <ng-template #usersEmpty>
+          <div class="small">
+            {{ isUsersLoading ? 'Loading users...' : 'No users found.' }}
+          </div>
+        </ng-template>
+        <div class="action-row" *ngIf="activeTab === 'view'">
+          <button class="btn-submit" type="button" (click)="loadUsers()" [disabled]="isUsersLoading">
+            {{ isUsersLoading ? 'Refreshing...' : 'Refresh' }}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   `,
   styles: [`
@@ -116,6 +166,36 @@ import Swal from 'sweetalert2';
     .small {
       font-size: 12px;
       color: #6b7280;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .tab {
+      cursor: pointer;
+      border: 1px solid #dbe7ea;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-weight: 600;
+      color: #374151;
+      background: #f8fafc;
+    }
+
+    .tab.active {
+      background: #008080;
+      color: #fff;
+      border-color: #008080;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
     }
 
     .grid {
@@ -174,11 +254,38 @@ import Swal from 'sweetalert2';
       opacity: 0.6;
       cursor: not-allowed;
     }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 900px;
+    }
+
+    .table th, .table td {
+      border: 1px solid #e5e7eb;
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .table th {
+      background: #f8fafc;
+      font-weight: 700;
+    }
   `]
 })
 export class CreateuserComponent implements OnInit {
+  activeTab: 'add' | 'view' = 'add';
   groups: GroupListItem[] = [];
+  users: UserListItem[] = [];
   isGroupsLoading = false;
+  isUsersLoading = false;
   isSubmitting = false;
 
   form = {
@@ -191,15 +298,25 @@ export class CreateuserComponent implements OnInit {
     isActive: 'ACTIVE'
   };
 
-  constructor(private createUserService: CreateUserService) {}
+  constructor(
+    private createUserService: CreateUserService,
+    private groupService: GroupService
+  ) {}
 
   ngOnInit(): void {
     this.loadGroups();
   }
 
+  setTab(tab: 'add' | 'view'): void {
+    this.activeTab = tab;
+    if (tab === 'view') {
+      this.loadUsers();
+    }
+  }
+
   private loadGroups(): void {
     this.isGroupsLoading = true;
-    this.createUserService.getGroups().subscribe({
+    this.groupService.getGroups().subscribe({
       next: (response) => {
         this.groups = response?.['#result-set-1'] || [];
         if (this.groups.length > 0 && !this.form.groupname) {
@@ -213,6 +330,29 @@ export class CreateuserComponent implements OnInit {
         Swal.fire({
           icon: 'error',
           title: 'Group Load Failed',
+          text: message,
+          confirmButtonColor: '#008080'
+        });
+      }
+    });
+  }
+
+  loadUsers(): void {
+    if (this.isUsersLoading) {
+      return;
+    }
+    this.isUsersLoading = true;
+    this.createUserService.getUsers().subscribe({
+      next: (response) => {
+        this.users = response || [];
+        this.isUsersLoading = false;
+      },
+      error: (error) => {
+        const message = error?.error?.message || error?.error?.error || 'Unable to load users';
+        this.isUsersLoading = false;
+        Swal.fire({
+          icon: 'error',
+          title: 'User Load Failed',
           text: message,
           confirmButtonColor: '#008080'
         });
@@ -250,6 +390,7 @@ export class CreateuserComponent implements OnInit {
             confirmButtonColor: '#008080'
           });
           this.resetFormAfterSubmit();
+          this.setTab('view');
         } else {
           Swal.fire({
             icon: 'warning',

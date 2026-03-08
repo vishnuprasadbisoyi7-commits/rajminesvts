@@ -17,18 +17,6 @@ export interface GroupSaveResponse {
   '#update-count-1'?: number;
 }
 
-export interface GroupListItem {
-  group_id: number;
-  group_name: string;
-  created_date?: string;
-  updated_date?: string;
-}
-
-export interface GroupListResponse {
-  '#result-set-1'?: GroupListItem[];
-  '#update-count-1'?: number;
-}
-
 @Injectable({
   providedIn: 'root'
 })
@@ -39,9 +27,5 @@ export class GroupService {
 
   createGroup(payload: GroupSavePayload): Observable<GroupSaveResponse> {
     return this.http.post<GroupSaveResponse>(`${this.apiUrl}/save`, payload);
-  }
-
-  getGroups(): Observable<GroupListResponse> {
-    return this.http.get<GroupListResponse>(`${this.apiUrl}/get`);
   }
 }
