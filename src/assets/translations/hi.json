@@ -58,7 +58,8 @@
     "miningOperator": "CCC उपयोगकर्ता",
     "occ": "OCC",
     "signin": "साइन इन करें",
-    "logout": "लॉगआउट"
+    "logout": "लॉगआउट",
+    "user": "उपयोगकर्ता"
   },
   "dashboard": {
     "title": "डैशबोर्ड",

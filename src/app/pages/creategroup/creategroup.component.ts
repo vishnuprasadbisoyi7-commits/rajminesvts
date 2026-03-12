@@ -140,19 +140,17 @@ import Swal from 'sweetalert2';
 
     .field-input {
       width: 100%;
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 14px;
-      resize: vertical;
-      min-height: 84px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
       font-family: inherit;
+      resize: vertical;
     }
 
     .field-input:focus {
       outline: none;
-      border-color: #0ea5e9;
-      box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+      border-color: #ccc;
+      box-shadow: none;
     }
 
     .action-row {

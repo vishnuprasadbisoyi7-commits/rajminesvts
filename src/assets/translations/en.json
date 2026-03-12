@@ -58,7 +58,8 @@
     "miningOperator": "CCC User",
     "occ": "OCC",
     "signin": "Signin",
-    "logout": "Logout"
+    "logout": "Logout",
+    "user": "User"
   },
   "dashboard": {
     "title": "Dashboard",

@@ -373,7 +373,7 @@ export class RoleSelectionComponent implements OnInit, OnDestroy {
       { id: 'vendor-registration', name: this.translate('roleSelection.newVendorRegistration'), icon: 'fas fa-user-plus', emoji: '📝' },
       { id: 'system-admin', name: this.translate('roleSelection.systemAdmin'), icon: 'fas fa-user-shield', emoji: '🛡️' },
       { id: 'gps-vendor', name: this.translate('roleSelection.gpsVendor'), icon: 'fas fa-truck', emoji: '🚛' },
-      // { id: 'user', name: this.translate('roleSelection.user'), icon: 'fas fa-user', emoji: '👤' },
+      { id: 'user', name: this.translate('roleSelection.user'), icon: 'fas fa-user', emoji: '👤' },
       { id: 'occ', name: this.translate('roleSelection.occ'), icon: 'fas fa-building', emoji: '🏢' }
    
     ];

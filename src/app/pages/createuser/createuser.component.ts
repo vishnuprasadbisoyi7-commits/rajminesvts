@@ -234,6 +234,20 @@ import Swal from 'sweetalert2';
       box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
     }
 
+    textarea.field-input {
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      min-height: initial;
+      background: #fff;
+    }
+
+    textarea.field-input:focus {
+      outline: none;
+      border-color: #ccc;
+      box-shadow: none;
+    }
+
     .action-row {
       margin-top: 14px;
       display: flex;

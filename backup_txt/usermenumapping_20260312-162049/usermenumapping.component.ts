@@ -2,8 +2,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { finalize } from 'rxjs';
-import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../services/usermenumapping.service';
+import { GlobalLink, UserMenuMappingService } from '../../services/usermenumapping.service';
 
 
 @Component({
@@ -23,25 +22,7 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
           <label class="field-label"
             >User Name <span class="req">*</span></label
           >
-          <div class="typeahead-wrap">
-            <input
-              class="field-input"
-              placeholder="Search user..."
-              [(ngModel)]="userQuery"
-              (input)="onUserSearch()"
-              (blur)="hideUserDropdown()"
-              autocomplete="off"
-            />
-            <ul class="dropdown" *ngIf="userResults.length && showUserDropdown">
-              <li
-                *ngFor="let u of userResults"
-                (mousedown)="selectUser(u)"
-                class="dropdown-item"
-              >
-                {{ u.name }}
-              </li>
-            </ul>
-          </div>
+          <input class="field-input" [value]="userName" readonly />
         </div>
 
         <div class="field-col copy-col">
@@ -52,10 +33,10 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
               placeholder="Search user..."
               [(ngModel)]="copyQuery"
               (input)="onCopySearch()"
-              (blur)="hideCopyDropdown()"
+              (blur)="hideDropdown()"
               autocomplete="off"
             />
-            <ul class="dropdown" *ngIf="copyResults.length && showCopyDropdown">
+            <ul class="dropdown" *ngIf="copyResults.length && showDropdown">
               <li
                 *ngFor="let u of copyResults"
                 (mousedown)="selectCopyUser(u)"
@@ -75,9 +56,6 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
 
       <div class="links-section">
         <p class="links-label">Add Primary Links:</p>
-
-        <div class="status-row" *ngIf="loadingLinks">Loading links...</div>
-        <div class="status-row error" *ngIf="errorMessage">{{ errorMessage }}</div>
 
         <div class="link-tree">
           <div class="global-row" *ngFor="let g of globalLinks; let i = index">
@@ -121,11 +99,10 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
                 >
                   {{ g.name }}
                 </span>
-                <!-- <span class="route-text" *ngIf="g.route">{{ g.route }}</span> -->
               </label>
             </div>
 
-            <!-- primary links (children) --> 
+            <!-- primary links (children) -->
             <div class="children" *ngIf="g.expanded">
               <div class="child-row" *ngFor="let p of g.primaryLinks">
                 <label class="cb-label child-label">
@@ -137,7 +114,6 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
                   />
                   <span class="cb-box teal-box"></span>
                   <span class="cb-text child-text">{{ p.name }}</span>
-                  <!-- <span class="route-text" *ngIf="p.route">{{ p.route }}</span> -->
                 </label>
               </div>
             </div>
@@ -290,14 +266,6 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
         color: #444;
         margin: 0 0 14px;
       }
-      .status-row {
-        font-size: 12.5px;
-        color: #666;
-        margin: -6px 0 10px;
-      }
-      .status-row.error {
-        color: #c62828;
-      }
 
       /* ── Tree ───────────────────────────────────────────────────────────── */
       .link-tree {
@@ -423,11 +391,6 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
         font-size: 13.5px;
         color: #333;
       }
-      .route-text {
-        font-size: 12px;
-        color: #7a7a7a;
-        margin-left: 6px;
-      }
       .cb-text.bold {
         font-weight: 600;
       }
@@ -548,45 +511,27 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
 })
 export class UsermenumappingComponent implements OnInit {
   userName = '';
-  userQuery = '';
-  userResults: UserSearchResult[] = [];
-  showUserDropdown = false;
   globalLinks: GlobalLink[] = [];
 
   copyQuery = '';
-  copyResults: UserSearchResult[] = [];
-  showCopyDropdown = false;
+  copyResults: { id: number; name: string }[] = [];
+  showDropdown = false;
 
   saving = false;
   saved = false;
-  loadingLinks = false;
-  copying = false;
-  errorMessage = '';
 
   private userId = 1;
-  private userSearchTimer?: ReturnType<typeof setTimeout>;
-  private copySearchTimer?: ReturnType<typeof setTimeout>;
 
   constructor(private svc: UserMenuMappingService) {}
 
   ngOnInit(): void {
-    const storedId =
-      sessionStorage.getItem('adminUserId') ||
-      sessionStorage.getItem('vendorUserId') ||
-      '';
-    const parsed = Number(storedId);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      this.userId = parsed;
-      this.userName = `User ${parsed}`;
-      this.userQuery = this.userName;
-      this.loadLinksForUser(this.userId);
-      return;
-    }
+    const user = this.svc.currentUser();
+    this.userId = user.id;
+    this.userName = user.name;
 
-    this.userId = 1;
-    this.userName = 'User 1';
-    this.userQuery = this.userName;
-    this.loadLinksForUser(this.userId);
+    const raw = this.svc.getGlobalLinks();
+    const savedIds = this.svc.getSavedMappings(this.userId);
+    this.globalLinks = this.svc.applyMappings(raw, savedIds);
   }
 
   // ── Expand / Collapse ───────────────────────────────────────────────────
@@ -615,134 +560,47 @@ export class UsermenumappingComponent implements OnInit {
     g.indeterminate = checked > 0 && checked < total;
   }
 
-  private loadLinksForUser(userId: number): void {
-    this.loadingLinks = true;
-    this.errorMessage = '';
-    this.svc
-      .getUserLinks(userId)
-      .pipe(finalize(() => (this.loadingLinks = false)))
-      .subscribe({
-        next: (links) => {
-          this.globalLinks = links;
-        },
-        error: () => {
-          this.globalLinks = [];
-          this.errorMessage = 'Failed to load user menu links.';
-        }
-      });
-  }
-
-  // User selection
-  onUserSearch(): void {
-    const query = this.userQuery.trim();
-    if (query.length < 1) {
-      this.userResults = [];
-      this.showUserDropdown = false;
-      return;
-    }
-
-    if (this.userSearchTimer) {
-      clearTimeout(this.userSearchTimer);
-    }
-    this.userSearchTimer = setTimeout(() => {
-      this.svc.searchUsers(query).subscribe({
-        next: (results) => {
-          this.userResults = results;
-          this.showUserDropdown = results.length > 0;
-        },
-        error: () => {
-          this.userResults = [];
-          this.showUserDropdown = false;
-          this.errorMessage = 'Failed to search users.';
-        }
-      });
-    }, 250);
-  }
-
-  selectUser(u: UserSearchResult): void {
-    this.userId = u.id;
-    this.userName = u.name;
-    this.userQuery = u.name;
-    this.showUserDropdown = false;
-    this.loadLinksForUser(this.userId);
-  }
-
-  hideUserDropdown(): void {
-    setTimeout(() => (this.showUserDropdown = false), 180);
-  }
-
   // ── Copy from another user ──────────────────────────────────────────────
   onCopySearch(): void {
-    const query = this.copyQuery.trim();
-    if (query.length < 1) {
+    if (this.copyQuery.trim().length < 1) {
       this.copyResults = [];
-      this.showCopyDropdown = false;
       return;
     }
-
-    if (this.copySearchTimer) {
-      clearTimeout(this.copySearchTimer);
-    }
-    this.copySearchTimer = setTimeout(() => {
-      this.svc.searchUsers(query).subscribe({
-        next: (results) => {
-          this.copyResults = results;
-          this.showCopyDropdown = results.length > 0;
-        },
-        error: () => {
-          this.copyResults = [];
-          this.showCopyDropdown = false;
-          this.errorMessage = 'Failed to search users for copy.';
-        }
-      });
-    }, 250);
+    this.copyResults = this.svc.searchUsers(this.copyQuery);
+    this.showDropdown = this.copyResults.length > 0;
   }
 
-  selectCopyUser(u: UserSearchResult): void {
+  selectCopyUser(u: { id: number; name: string }): void {
     this.copyQuery = u.name;
-    this.showCopyDropdown = false;
-    this.copying = true;
-    this.errorMessage = '';
-
-    this.svc
-      .copyMappings(u.id, this.userId)
-      .pipe(finalize(() => (this.copying = false)))
-      .subscribe({
-        next: () => this.loadLinksForUser(this.userId),
-        error: () => {
-          this.errorMessage = 'Failed to copy user menu mappings.';
-        }
-      });
+    this.showDropdown = false;
+    // Load that user's mappings and apply to current form
+    const savedIds = this.svc.getSavedMappings(u.id);
+    const fresh = this.svc.getGlobalLinks();
+    this.globalLinks = this.svc.applyMappings(fresh, savedIds);
   }
 
-  hideCopyDropdown(): void {
-    setTimeout(() => (this.showCopyDropdown = false), 180);
+  hideDropdown(): void {
+    setTimeout(() => (this.showDropdown = false), 180);
   }
 
   // ── Save ────────────────────────────────────────────────────────────────
   save(): void {
     this.saving = true;
-    this.errorMessage = '';
     const ids = this.svc.collectCheckedIds(this.globalLinks);
-    // Optimistic UI: show success quickly, then sync in background.
-    this.saved = true;
-    setTimeout(() => (this.saved = false), 3000);
-    setTimeout(() => (this.saving = false), 200);
-
-    this.svc.saveMappings(this.userId, ids).subscribe({
-      next: () => {
-        // keep optimistic success
-      },
-      error: () => {
-        this.saved = false;
-        this.errorMessage = 'Failed to save user menu mappings.';
-      }
-    });
+    setTimeout(() => {
+      // simulate async; replace with HTTP observable
+      this.svc.saveMappings(this.userId, ids);
+      this.saving = false;
+      this.saved = true;
+      setTimeout(() => (this.saved = false), 3000);
+    }, 600);
   }
 
   // ── Reset ───────────────────────────────────────────────────────────────
   reset(): void {
+    const savedIds = this.svc.getSavedMappings(this.userId);
+    const fresh = this.svc.getGlobalLinks();
+    this.globalLinks = this.svc.applyMappings(fresh, savedIds);
     this.copyQuery = '';
-    this.loadLinksForUser(this.userId);
   }
 }

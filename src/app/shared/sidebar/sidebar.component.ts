@@ -194,44 +194,44 @@ export class SidebarComponent implements OnInit, OnDestroy {
     
     const menus: { [key: string]: MenuItem[] } = {
       'system-admin': [
-        {
-          id: 'index',
-          title: this.translationService.translate('sidebar.dashboard'),
-          route: '/dashboard',
-          type: 'link'
-        },
-        {
-          id: 'vendor',
-          title: this.translationService.translate('sidebar.vendorEnrollment'),
-          route: '/vendor',
-          type: 'link'
-        },
-        {
-          id: 'device',
-          title: this.translationService.translate('sidebar.deviceTagging'),
-          type: 'section',
-          children: [
-            { id: 'device-fitment', title: this.translationService.translate('sidebar.fitAndActivate'), route: '/device/fitment', type: 'link' }
-          ]
-        },
-        {
-          id: 'geofence',
-          title: this.translationService.translate('sidebar.geoFencing'),
-          route: '/geofence',
-          type: 'link'
-        },
-        {
-          id: 'tracking',
-          title: this.translationService.translate('sidebar.endToEndTracking'),
-          route: '/tracking',
-          type: 'link'
-        },
-        {
-          id: 'trip-assignment',
-          title: this.translationService.translate('sidebar.tripAssignment'),
-          route: '/trip-assignment',
-          type: 'link'
-        },
+        // {
+        //   id: 'index',
+        //   title: this.translationService.translate('sidebar.dashboard'),
+        //   route: '/dashboard',
+        //   type: 'link'
+        // },
+        // {
+        //   id: 'vendor',
+        //   title: this.translationService.translate('sidebar.vendorEnrollment'),
+        //   route: '/vendor',
+        //   type: 'link'
+        // },
+        // {
+        //   id: 'device',
+        //   title: this.translationService.translate('sidebar.deviceTagging'),
+        //   type: 'section',
+        //   children: [
+        //     { id: 'device-fitment', title: this.translationService.translate('sidebar.fitAndActivate'), route: '/device/fitment', type: 'link' }
+        //   ]
+        // },
+        // {
+        //   id: 'geofence',
+        //   title: this.translationService.translate('sidebar.geoFencing'),
+        //   route: '/geofence',
+        //   type: 'link'
+        // },
+        // {
+        //   id: 'tracking',
+        //   title: this.translationService.translate('sidebar.endToEndTracking'),
+        //   route: '/tracking',
+        //   type: 'link'
+        // },
+        // {
+        //   id: 'trip-assignment',
+        //   title: this.translationService.translate('sidebar.tripAssignment'),
+        //   route: '/trip-assignment',
+        //   type: 'link'
+        // },
         {
         id: 'function-master',
         title: this.translationService.translate('sidebar.functionMaster'),
@@ -276,13 +276,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
           title: this.translationService.translate('sidebar.userMenuMapping'),
           route: '/user-menu-mapping',
           type: 'link'
-        },     
-        {
-          id: 'notifications',
-          title: this.translationService.translate('sidebar.notifications'),
-          route: '/notifications',
-          type: 'link'
-        }
+        }     
+        // {
+        //   id: 'notifications',
+        //   title: this.translationService.translate('sidebar.notifications'),
+        //   route: '/notifications',
+        //   type: 'link'
+        // }
       ],
       'gps-vendor': [
         {
@@ -298,13 +298,13 @@ export class SidebarComponent implements OnInit, OnDestroy {
           children: [
             { id: 'device-registered', title: this.translationService.translate('sidebar.registerGpsDevice'), route: '/device', type: 'link' }
           ]
-        },
-        {
-          id: 'notifications',
-          title: this.translationService.translate('sidebar.notifications'),
-          route: '/notifications',
-          type: 'link'
         }
+        // {
+        //   id: 'notifications',
+        //   title: this.translationService.translate('sidebar.notifications'),
+        //   route: '/notifications',
+        //   type: 'link'
+        // }
       ],
       'occ': [
         {

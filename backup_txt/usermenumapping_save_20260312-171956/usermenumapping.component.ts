@@ -121,7 +121,7 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
                 >
                   {{ g.name }}
                 </span>
-                <!-- <span class="route-text" *ngIf="g.route">{{ g.route }}</span> -->
+                <span class="route-text" *ngIf="g.route">{{ g.route }}</span>
               </label>
             </div>
 
@@ -137,7 +137,7 @@ import { GlobalLink, UserMenuMappingService, UserSearchResult } from '../../serv
                   />
                   <span class="cb-box teal-box"></span>
                   <span class="cb-text child-text">{{ p.name }}</span>
-                  <!-- <span class="route-text" *ngIf="p.route">{{ p.route }}</span> -->
+                  <span class="route-text" *ngIf="p.route">{{ p.route }}</span>
                 </label>
               </div>
             </div>
@@ -722,22 +722,19 @@ export class UsermenumappingComponent implements OnInit {
   // ── Save ────────────────────────────────────────────────────────────────
   save(): void {
     this.saving = true;
-    this.errorMessage = '';
     const ids = this.svc.collectCheckedIds(this.globalLinks);
-    // Optimistic UI: show success quickly, then sync in background.
-    this.saved = true;
-    setTimeout(() => (this.saved = false), 3000);
-    setTimeout(() => (this.saving = false), 200);
-
-    this.svc.saveMappings(this.userId, ids).subscribe({
-      next: () => {
-        // keep optimistic success
-      },
-      error: () => {
-        this.saved = false;
-        this.errorMessage = 'Failed to save user menu mappings.';
-      }
-    });
+    this.svc
+      .saveMappings(this.userId, ids)
+      .pipe(finalize(() => (this.saving = false)))
+      .subscribe({
+        next: () => {
+          this.saved = true;
+          setTimeout(() => (this.saved = false), 3000);
+        },
+        error: () => {
+          this.errorMessage = 'Failed to save user menu mappings.';
+        }
+      });
   }
 
   // ── Reset ───────────────────────────────────────────────────────────────

@@ -25,7 +25,7 @@ import { AuthService } from '../../services/auth.service';
         <div class="language-switcher">
           <select [(ngModel)]="currentLanguage" (change)="onLanguageChange()" class="language-select">
             <option value="en">English</option>
-            <option value="hi">Hindi</option>
+            <option value="hi">हिंदी</option>
           </select>
         </div>
         <button class="btn-back-role" (click)="goToRoleSelection()">{{ translate('common.backToRole') }}</button>
